@@ -1,4 +1,6 @@
-const fs = require("fs")
+// const fs = require("fs")
+const fs = require("fs-extra")
+const pathModule = require("path")
 // const path = require("path")
 const {merge, collect} = require("./task.js")
 const {dialog} = require("electron").remote
@@ -48,8 +50,15 @@ document.getElementById("btn-process").addEventListener("click", () => {
         mdui.alert(`Can not handle ${cantHandleFiles.length} files. please choose a directory to save cantHandleFiles's copy.`, () => {
           dialog.showOpenDialog({properties: ["openDirectory"]}, selectedPaths => {
             cantHandleFiles.forEach(file => {
-              let basename = require("path").basename(file)
-              fs.createReadStream(file).pipe(fs.createWriteStream(require("path").join(selectedPaths[0], basename)))
+              let basename = pathModule.basename(file)
+              let des = pathModule.join(selectedPaths[0], basename)
+              console.log(file)
+              console.log(des)
+              fs.copy(file, pathModule.join(selectedPaths[0], basename), err => {
+                if (err) { console.log(err) }
+                console.log("sucess")
+              })
+              // fs.createReadStream(file).pipe(fs.createWriteStream(require("path").join(selectedPaths[0], basename)))
             })
           })
         })
