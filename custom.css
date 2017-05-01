@@ -1,0 +1,12 @@
+body {
+  width: 80%;
+  margin: 30px auto;
+}
+#radio-div {
+  padding: 30px 0;
+  display: block;
+}
+
+.mdui-radio {
+  display: block;
+}
