@@ -1,4 +1,5 @@
 const fs = require("fs")
+// const path = require("path")
 const {merge, collect} = require("./task.js")
 const {dialog} = require("electron").remote
 
@@ -16,6 +17,7 @@ document.getElementById("btn-process").addEventListener("click", () => {
   const textPath = document.getElementById("path")
   const indicator = document.getElementById("indicator")
   btnProcess.disabled = true
+  btnProcess.value = "Processing"
   const path = textPath.value
   const task = document.querySelector("input[name='task']:checked").value
   try {
@@ -25,23 +27,36 @@ document.getElementById("btn-process").addEventListener("click", () => {
     return
   }
   if (task === "collect") {
-    btnProcess.classList.toggle("mdui-hidden")
-    indicator.classList.toggle("mdui-hidden")
-    collect(path, (categories) => {
+    // btnProcess.classList.toggle("mdui-hidden")
+    // indicator.classList.toggle("mdui-hidden")
+    collect(path, (categoriesSet, cantHandleFiles) => {
       // btnProcess.innerHTML = "DONE"
-      dialog.showSaveDialog(fileName => {
-        if (fileName === undefined) {
-          console.log("cancel saving file.")
-          return
-        }
-        // Todo join 的效率问题
-        fs.writeFile(fileName, [...categories].join("\n"), err => {
-          if (err) {
-            mdui.alert("an error ocurred creating the file" + err.message)
+      mdui.alert(`${categoriesSet.size} categories has been extracted. Please choose a filename to save categories.`, () => {
+        dialog.showSaveDialog({title: "choose a filename to save categories."},fileName => {
+          if (fileName === undefined) {
+            console.log("cancel saving file.")
+            return
           }
-          mdui.alert(`All categories has been saved to file: ${fileName}.`)
+          // Todo join 的效率问题
+          fs.writeFile(fileName, [...categoriesSet].join("\n"), err => {
+            if (err) {
+              mdui.alert("an error ocurred creating the file" + err.message)
+            }
+          })
+        })
+          // mdui.alert(`All categories has been saved to file: ${fileName}.`)
+        mdui.alert(`Can not handle ${cantHandleFiles.length} files. please choose a directory to save cantHandleFiles's copy.`, () => {
+          dialog.showOpenDialog({properties: ["openDirectory"]}, selectedPaths => {
+            cantHandleFiles.forEach(file => {
+              let basename = require("path").basename(file)
+              fs.createReadStream(file).pipe(fs.createWriteStream(require("path").join(selectedPaths[0], basename)))
+            })
+          })
         })
       })
+      btnProcess.disabled = false
+      btnProcess.value = "Process"
+
     })
   } else if (task === "merge") {
     merge(path)

@@ -1,9 +1,14 @@
 const glob = require("glob")
 const parseRTF = require("rtf-parser")
-// const fs = require("fs")
-const fs = require("graceful-fs")
+const fs = require("fs")
 const assert = require("assert")
 const FormatError = require("./formatError")
+var Promise = require("bluebird")
+const isRtf = require("is-rtf")
+
+// process.on("uncaughtException", function(err) {
+  // console.log("parser can not handle.")
+// })
 
 function findFirstNotEmpty(element) {
   return element.value.trimLeft() !== ""
@@ -36,8 +41,6 @@ function searchIndex(doc, name) {
       return {rowIndex: i, colIndex: j}
     }
   }
-  // return {rowIndex: -1, colIndex: -1}
-  // Can't find label: name
   throw new FormatError()
 }
 
@@ -49,6 +52,7 @@ function extractNC(doc, index) {
 
   let details = []
 
+  // printRTF(doc)
   for (let i = index.rowIndex + 2; i < doc.content.length; i++) {
     let para = doc.content[i]
     let categoryIndex = para.content.findIndex(findFirstNotEmpty)
@@ -87,7 +91,7 @@ function extractNC(doc, index) {
     }
 
     let detail = {
-      category: category,
+      title: category,
       qty: {
         minor: counter[0],
         major: counter[1],
@@ -107,7 +111,10 @@ function extractNC(doc, index) {
 
 function extractInfo(doc, name) {
   assert.equal(name, name.toLowerCase(), `para: ${name} should pass as lowercase.`)
-  assert.notEqual(doc, null)
+  // assert.notEqual(doc, null)
+  if(!doc) {
+    return null
+  }
 
   const rowIndexs = {
     nonconformity: 10,
@@ -115,24 +122,43 @@ function extractInfo(doc, name) {
   let rowIndex = rowIndexs[name]
   let para = doc.content[rowIndex]
 
-  let colIndex = para.content.findIndex(isSpanEqual(name))
+  // bug
+  // console.log(`para: ${para}`)
+  // printRTF(doc)
+  let colIndex
+  try {
+    colIndex = para.content.findIndex(isSpanEqual(name))
+  }
+  catch(err) {
+    return null
+  }
   let index = {}
 
   if (colIndex >= 0) {
     index = {rowIndex:rowIndex, colIndex: colIndex}
   } else {
     // search by index
-    index = searchIndex(doc, name)
+    try {
+      index = searchIndex(doc, name)
+    } catch(err) {
+      return null
+    }
   }
   if (name === "nonconformity") {
-    return extractNC(doc, index)
+    let result = null
+    try {
+      result = extractNC(doc, index)
+    }
+    catch (err) {
+      console.log("extractNC error", err)
+    }
+    return result
   } else {
     let arrayAfterColIndex = doc.content[index.rowIndex].content.slice(index.colIndex + 1)
     let firstNotEmpty = arrayAfterColIndex.find(findFirstNotEmpty).value
     if (firstNotEmpty) {
       return firstNotEmpty
     } else {
-      // unkown format, throw error
       throw new FormatError()
     }
   }
@@ -141,22 +167,52 @@ function extractInfo(doc, name) {
 
 // Promise
 function extractCategories(file) {
-
-  return new Promise((resolve, reject) => {
-    parseRTF.stream(fs.createReadStream(file), (err, doc) => {
-      if (err) {
-        console.log(`Can't process ${file}. error: ${err}.`)
-        reject(err, file)
-      } else {
-        let category = extractInfo(doc, "nonconformity")
-        resolve(category)
-      }
+  let promise
+  try {
+    promise = new Promise((resolve, reject) => {
+      parseRTF.stream(fs.createReadStream(file), (err, doc) => {
+        if (err) {
+          console.log(`Error while parse ${file}. error: ${err}.`)
+          reject(err, file)
+        } else {
+          // 返回一个数组, 其中每一项都是一个对象, 包含了类别和数量
+          let categories = extractInfo(doc, "nonconformity")
+          if (categories === null) {
+            categories = [file]
+          }
+          resolve(categories)
+        }
+      })
     })
-  })
+  } catch(err) {
+    console.log("Parser can not handle this format.")
+  }
+  return promise
 }
 
 function merge(path) {
   console.log("process merge task")
+}
+
+// 无论什么情况都要 resolve, 否则promise.map变成了 reject
+var collectTask = function(file) {
+  return new Promise(resolve => {
+    if(!isRtf(fs.readFileSync(file))) {
+      resolve([file])
+    }
+    try {
+      extractCategories(file)
+        .then(categories => resolve(categories))
+        .catch(err => {
+          // extractCategories 被 reject 表示rtf-parser不支持该文件类型
+          console.log(`rtf-parser can not handle file: ${file}. err: ${err}`)
+          // unHandleFiles.push(file)
+          resolve([file])
+        })
+    } catch(err) {
+      console(`rtf-parser can not handle file: $(file). err: ${err}`)
+    }
+  })
 }
 
 function collect(path, cb) {
@@ -165,38 +221,34 @@ function collect(path, cb) {
 
   glob(`${path}/**/*.rtf`, {}, (err, files) => {
     console.log(`Total rtf files: ${files.length}`)
-    // console.log(files)
-    // return
 
-    let promises = []
-    let categories = new Set()
-    let unHandleFiles = []
+    let categoriesSet = new Set()
+    let cantHandleFiles = []
+    try {
 
-    files.forEach(file => {
-      let promise = new Promise(resolve => {
-        extractCategories(file)
-          .then(category => resolve(category))
-          .catch((err, file) => {
-            console.log(`can not handle file: ${file}. err: ${err}`)
-            unHandleFiles.push(file)
-            resolve({category: []})
+      Promise.map(
+        files,
+        collectTask,
+        {concurrency: 3}
+      ).then(promiseResovles => {
+        promiseResovles.forEach(categories => {
+          categories.forEach(category => {
+            if (typeof category === "object") {
+              categoriesSet.add(category.title)
+              // console.log(category.title)
+            } else {
+              // console.log(`You must handle ${category} by yourself.`)
+              cantHandleFiles.push(category)
+            }
           })
-      })
-      promises.push(promise)
-    })
-    Promise.all(promises).then(promiseResolveArray => {
-      promiseResolveArray.forEach(categoriesInAfile => {
-        categoriesInAfile.forEach(category => {
-          categories.add(category.category)
         })
+        console.log("all collected categories: ", [...categoriesSet].join("\n"))
+        console.log("Cant handle these files: ", cantHandleFiles.join("\n"))
+        cb(categoriesSet, cantHandleFiles)
       })
-      console.log(`Total categories: ${categories.size}`)
-      console.log(`unHandleFiles: ${unHandleFiles}`)
-      categories.forEach(category => console.log(category))
-      cb(categories)
-    }).catch(err => {
+    } catch(err) {
       console.log(err)
-    })
+    }
   })
 }
 

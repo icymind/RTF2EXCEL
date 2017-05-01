@@ -13,9 +13,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^3.5.0",
     "exceljs": "^0.4.4",
     "glob": "^7.1.1",
-    "graceful-fs": "^4.1.11",
+    "is-rtf": "^1.0.0",
     "mdui": "^0.2.0",
     "rtf-parser": "^1.0.4"
   },
