@@ -6,9 +6,28 @@ const FormatError = require("./formatError")
 var Promise = require("bluebird")
 const isRtf = require("is-rtf")
 
-// process.on("uncaughtException", function(err) {
-  // console.log("parser can not handle.")
-// })
+// special: disposition
+const allInfo = [
+  "Season",
+  "Vendor",
+  "Factory",
+  "PO Number",
+  "Production Status",
+  "GA Product Number",
+  "Product name",
+  "REI Style Number",
+  "Audit Lot Size",
+  "Audit Quality Level",
+  "Audit Sample Quantity",
+  "Audit Reject Quantity",
+  "Disposition",
+  "Auditor",
+  "Nonconformity"
+]
+
+process.on("uncaughtException", function(err) {
+  console.log("parser can not handle.")
+})
 
 function findFirstNotEmpty(element) {
   return element.value.trimLeft() !== ""
@@ -31,6 +50,7 @@ function printRTF(doc) {
   }
 }
 
+// 找到 name 在 doc 中的坐标, 找不到则抛出错误
 function searchIndex(doc, name) {
   assert.equal(name, name.toLowerCase(), `para: ${name} should pass as lowercase.`)
   const paraLen = doc.content.length
@@ -118,32 +138,44 @@ function extractInfo(doc, name) {
 
   const rowIndexs = {
     nonconformity: 10,
+    "rei style number": 2,
+    "audit level": 2,
+    season: 3,
+    auditor: 3,
+    "product name": 3,
+    "audit quality level": 3
   }
   let rowIndex = rowIndexs[name]
-  let para = doc.content[rowIndex]
+  let para
+  let index = {}
+  if (rowIndex === undefined) {
+    console.log("not index")
+    index = searchIndex(doc, name)
+  } else {
+    para = doc.content[rowIndex]
+    let colIndex
+    try {
+      colIndex = para.content.findIndex(isSpanEqual(name))
+    }
+    catch(err) {
+      return null
+    }
+    if (colIndex >= 0) {
+      index = {rowIndex:rowIndex, colIndex: colIndex}
+    } else {
+      // search by index
+      try {
+        index = searchIndex(doc, name)
+      } catch(err) {
+        return null
+      }
+    }
+  }
 
   // bug
   // console.log(`para: ${para}`)
   // printRTF(doc)
-  let colIndex
-  try {
-    colIndex = para.content.findIndex(isSpanEqual(name))
-  }
-  catch(err) {
-    return null
-  }
-  let index = {}
 
-  if (colIndex >= 0) {
-    index = {rowIndex:rowIndex, colIndex: colIndex}
-  } else {
-    // search by index
-    try {
-      index = searchIndex(doc, name)
-    } catch(err) {
-      return null
-    }
-  }
   if (name === "nonconformity") {
     let result = null
     try {
@@ -153,6 +185,14 @@ function extractInfo(doc, name) {
       console.log("extractNC error", err)
     }
     return result
+  } else if (name === "disposition") {
+    let line2rdAfterRowIndex = doc.content[index.rowIndex + 2].content
+    let firstNotEmpty = line2rdAfterRowIndex.find(findFirstNotEmpty).value
+    if (firstNotEmpty) {
+      return firstNotEmpty
+    } else {
+      throw new FormatError()
+    }
   } else {
     let arrayAfterColIndex = doc.content[index.rowIndex].content.slice(index.colIndex + 1)
     let firstNotEmpty = arrayAfterColIndex.find(findFirstNotEmpty).value
@@ -163,6 +203,45 @@ function extractInfo(doc, name) {
     }
   }
 
+}
+
+function extractInfoFromFile(file) {
+  let promise
+  try {
+    promise = new Promise((resolve, reject) => {
+      parseRTF.stream(fs.createReadStream(file), (err, doc) => {
+        if (err) {
+          console.log(`Error while parseRTF.stream ${file}. error: ${err}.`)
+          reject(err, file)
+        } else {
+          // let info = extractInfo(doc, "nonconformity")
+          let info = {}
+          allInfo.forEach(infoName => {
+            let infoNameLowercase = infoName.toLowerCase()
+            let infoValue
+            try {
+              infoValue = extractInfo(doc, infoNameLowercase)
+              // 不会返回 null, 只抛出错误
+              if (infoValue === null) {
+                console.log(`get null value for ${infoName}`)
+              }
+              info[infoNameLowercase] = infoValue
+              // console.log(`infoName: ${infoName},infoValue: ${infoValue}`)
+            } catch(err) {
+              console.log(`extract ${infoName} error`, err)
+              info = {err: true, fileName: file}
+              resolve(info)
+            }
+          })
+          console.log(info)
+          resolve(info)
+        }
+      })
+    })
+  } catch(err) {
+    console.log("Parser can not handle this format.")
+  }
+  return promise
 }
 
 // Promise
@@ -190,8 +269,63 @@ function extractCategories(file) {
   return promise
 }
 
-function merge(path) {
+
+// selectedPath: openDialog's first path
+// cb(categories, cantHandleFiles)
+function merge(selectedPath, callback) {
   console.log("process merge task")
+  glob(`${selectedPath}/**/*.rtf`, {}, (err, files) => {
+    console.log(`Total rtf files: ${files.length}`)
+
+    let infos = []
+    let cantHandleFiles = []
+
+    Promise.map(
+      files,
+      mergeTask,
+      {concurrency: 3}
+    ).then(promiseResovles => {
+      promiseResovles.forEach(info => {
+        if (info.err === true) {
+          if (info.fileName !== undefined) {
+            cantHandleFiles.push(info.fileName)
+          }
+        // console.log(category.title)
+        } else {
+          // console.log(`You must handle ${category} by yourself.`)
+          infos.push(info)
+        }
+      })
+      console.log("all collected informations: ", infos.length)
+      console.log(infos)
+      console.log("Cant handle these files: ", cantHandleFiles.join("\n"))
+      callback(infos, cantHandleFiles)
+    })
+  })
+}
+
+var mergeTask = function(file) {
+  return new Promise(resolve => {
+    if(!isRtf(fs.readFileSync(file))) {
+      resolve({err: true, fileName: file})
+    }
+    try {
+      extractInfoFromFile(file)
+        .then(info => {
+          // console.log("sucess resolve from extractInfoFromFile")
+          resolve(info)
+        }).catch(err => {
+          // extractCategories 被 reject 表示rtf-parser不支持该文件类型
+          console.log(`rtf-parser can not handle file: ${file}. err: ${err}`)
+          // unHandleFiles.push(file)
+          resolve({err: true, fileName: file})
+        })
+    } catch(err) {
+      // console.log(`rtf-parser can not handle file: $(file). err: ${err}`)
+      console.log("catch err when running extractInfoFromFile", err)
+      resolve({err: true, fileName: file})
+    }
+  })
 }
 
 // 无论什么情况都要 resolve, 否则promise.map变成了 reject
@@ -215,6 +349,8 @@ var collectTask = function(file) {
   })
 }
 
+// path: openDialog's first path
+// cb(categories, cantHandleFiles)
 function collect(path, cb) {
 
   console.log("process collect task")
@@ -224,31 +360,27 @@ function collect(path, cb) {
 
     let categoriesSet = new Set()
     let cantHandleFiles = []
-    try {
 
-      Promise.map(
-        files,
-        collectTask,
-        {concurrency: 3}
-      ).then(promiseResovles => {
-        promiseResovles.forEach(categories => {
-          categories.forEach(category => {
-            if (typeof category === "object") {
-              categoriesSet.add(category.title)
-              // console.log(category.title)
-            } else {
-              // console.log(`You must handle ${category} by yourself.`)
-              cantHandleFiles.push(category)
-            }
-          })
+    Promise.map(
+      files,
+      collectTask,
+      {concurrency: 3}
+    ).then(promiseResovles => {
+      promiseResovles.forEach(categories => {
+        categories.forEach(category => {
+          if (typeof category === "object") {
+            categoriesSet.add(category.title)
+            // console.log(category.title)
+          } else {
+            // console.log(`You must handle ${category} by yourself.`)
+            cantHandleFiles.push(category)
+          }
         })
-        console.log("all collected categories: ", [...categoriesSet].join("\n"))
-        console.log("Cant handle these files: ", cantHandleFiles.join("\n"))
-        cb(categoriesSet, cantHandleFiles)
       })
-    } catch(err) {
-      console.log(err)
-    }
+      console.log("all collected categories: ", [...categoriesSet].join("\n"))
+      console.log("Cant handle these files: ", cantHandleFiles.join("\n"))
+      cb(categoriesSet, cantHandleFiles)
+    })
   })
 }
 
