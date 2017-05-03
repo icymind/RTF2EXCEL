@@ -2,7 +2,7 @@ require("chai").should()
 const fs = require("fs")
 const assert = require("assert")
 const path = require("path")
-const {extract} = require(path.join(__dirname, "../extract.js"))
+const {extract, extractFromFile} = require(path.join(__dirname, "../extract.js"))
 
 
 describe("Test extract(str)", function(){
@@ -191,6 +191,85 @@ describe("Test extract(str)", function(){
           }
         ]
       })
+    })
+  })
+
+  it("test file: long disposition", function() {
+    const fileName = "long-disposition.rtf"
+    const filePath = path.join(__dirname, fileName)
+    const rtf = extractFromFile(filePath)
+    assert(rtf["parse error"] === false, "extract should handle this file.")
+    rtf.should.to.be.eql({
+      "parse error": false,
+      "File Path": filePath,
+      "Parse Info": "Parse sucess",
+      "season": "F16",
+      "department": "Childrenswear",
+      "rei style number": "101229",
+      "audit level": "Normal",
+      "auditor": "Coco Chen",
+      "product name": "650D Down Jacket-Kids",
+      "audit quality level": "2.5",
+      "audit lot size": "4710",
+      "production status": "Supplier Pre-ship",
+      "vendor": "PAN PACIFIC CO KR",
+      "factory": "VIET PACIFIC CLOTHING CO LTD",
+      "ga product number": "18587",
+      "audit sample quantity": "32",
+      "po number": "4503702415/4503654565",
+      "audit reject quantity": "3",
+      "disposition": [
+        {
+          "title": "Scrap",
+          "qty": "2"
+        },
+        {
+          "title": "Vendor 100% Sort/Repair then Hold for Re-Audit",
+          "qty": "4708"
+        }
+      ],
+      "nonconformity details": [
+        {
+          "title": "F1-Fabric-flaw",
+          "type": "Fabric",
+          "qty": {
+            "minor": "0",
+            "major": "2",
+            "critical": "0",
+            "rsi": "0"
+          }
+        },
+        {
+          "title": "W7-Workmanship-other",
+          "type": "Workmanship",
+          "qty": {
+            "minor": "0",
+            "major": "3",
+            "critical": "0",
+            "rsi": "0"
+          }
+        },
+        {
+          "title": "W16-Workmanship-threads loose/untrimmed",
+          "type": "Workmanship",
+          "qty": {
+            "minor": "2",
+            "major": "0",
+            "critical": "0",
+            "rsi": "0"
+          }
+        },
+        {
+          "title": "W5-Workmanship-dirt/oil",
+          "type": "Workmanship",
+          "qty": {
+            "minor": "0",
+            "major": "1",
+            "critical": "0",
+            "rsi": "0"
+          }
+        }
+      ]
     })
   })
 

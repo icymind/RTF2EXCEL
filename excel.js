@@ -88,7 +88,7 @@ function writeToWorkbook(workbook, sheetName, rtf) {
     } else if (filed.toLowerCase() === "disposition") {
       let dispositionTitles = []
       rtf[filed].forEach(detail => dispositionTitles.push(detail.title))
-      row[filed.toLowerCase()] = dispositionTitles.join(";")
+      row[filed.toLowerCase()] = dispositionTitles.join("; ")
     } else {
       row[filed.toLowerCase().split(" ").join("")] = rtf[filed]
     }

@@ -89,19 +89,19 @@ function getReiStyleNumber(str) {
   return reg.exec(str)[1]
 }
 function getAuditLevel(str) {
-  let reg = /Audit Level[^ ]+ ([^\\{]+)/gmi
+  let reg = /Audit Level[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 }
 function getAuditor(str) {
-  let reg = /Auditor[^ ]+ ([^\\{]+)/gmi
+  let reg = /Auditor[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 }
 function getSeason(str) {
-  let reg = /Season[^ ]+ ([^\\{]+)/gmi
+  let reg = /Season[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 }
 function getProductName(str) {
-  let reg = /Product Name[^ ]+ ([^\\{]+)/gmi
+  let reg = /Product Name[^ ]+ ([^\\{\}]+)/gmi
   let productName = reg.exec(str)[1]
   reg = /Audit Quality Level[^ ]+ \d+\.\d+[^ ]+ ([^\\\{]+)[^ ]+ Audit Type/gmi
   let productNamePart = reg.exec(str)
@@ -112,12 +112,12 @@ function getProductName(str) {
 
 }
 function getAuditQualityLevel(str) {
-  let reg = /Audit Quality Level[^ ]+ ([^\\{]+)/gmi
+  let reg = /Audit Quality Level[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
 function getVendor(str) {
-  let reg = /Vendor[^ ]+ ([^\\{]+)/gmi
+  let reg = /Vendor[^ ]+ ([^\\{\}]+)/gmi
   let vendor = reg.exec(str)[1]
   reg = /Audit Lot Size[^ ]+ \d+[^ ]+ ([^\\\{]+)([^ ]+ ([^\\\{]+))?[^ ]+ Production Status/gmi
   let vendorPart = reg.exec(str)
@@ -131,22 +131,22 @@ function getVendor(str) {
 
 }
 function getGAProductNumber(str) {
-  let reg = /GA Product Number[^ ]+ ([^\\{]+)/gmi
+  let reg = /GA Product Number[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
 function getAuditLotSize(str) {
-  let reg = /Audit Lot Size[^ ]+ ([^\\{]+)/gmi
+  let reg = /Audit Lot Size[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
 function getProductionStatus(str) {
-  let reg = /Production Status[^ ]+ ([^\\{]+)/gmi
+  let reg = /Production Status[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
 function getFactory(str) {
-  let reg = /Factory[^ ]+ ([^\\{]+)/gmi
+  let reg = /Factory[^ ]+ ([^\\{\}]+)/gmi
   let factory = reg.exec(str)[1]
   reg = /Sample Quantity[^ ]+ [0-9]+[^ ]+ ([^\{\\]+)([^ ]+ ([^\\\{]+))?[^ ]+ PO Number.*/gmi
   let factoryPart2 = reg.exec(str)
@@ -160,17 +160,17 @@ function getFactory(str) {
 
 }
 function getAuditSampleQuantity(str) {
-  let reg = /Audit Sample Quantity[^ ]+ ([^\\{]+)/gmi
+  let reg = /Audit Sample Quantity[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
 function getPONumber(str) {
-  let reg = /PO Number[^ ]+ ([^\\{]+)/gmi
+  let reg = /PO Number[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
 function getAuditRejectQuantity(str) {
-  let reg = /Audit Reject Quantity[^ ]+ ([^\\{]+)/gmi
+  let reg = /Audit Reject Quantity[^ ]+ ([^\\{\}]+)/gmi
   return reg.exec(str)[1]
 
 }
@@ -219,23 +219,30 @@ function getNonconformityDetails(str) {
 
 }
 function getDisposition(str) {
-  // let reg = /.+Disposition[^ ]+ ([^\\{]+)/gmi
+  // let reg = /.+Disposition[^ ]+ ([^\\{\}]+)/gmi
   let reg = /Disposition.+ Quantity.+ Comments.+ _{8,}(.*) Audit Done/gmi
   let tempStr = reg.exec(str)[1]
-  reg = /\{[^ ]+ ([^\}\\]+)[^ ]+ ([0-9]+)/gmi
+  // todo : 多行/Users/simon/Downloads/QC data/CampingGea_FAIL848478CampKitchen14562_19Apr16_225851.rtf
+  // /Users/simon/Downloads/QC data/CampingGea_FAIL877258FlexliteChairup16948_29Aug16_203509.rtf
+  // /Users/simon/Downloads/QC data/Childrensw_FAIL101229650DDownJacket-18587_19May16_210504.rtf
+  reg = /\{[^ ]+\\b[^ ]+ ([^\\\{\}]+)([^ ]+\\b[^ ]+ ([0-9]+))?/gmi
   let dispositionArray = []
   let item = reg.exec(tempStr)
   while (item) {
-    dispositionArray.push({
-      "title": item[1],
-      "qty": item[2]
-    })
+    if (item[2]) {
+      dispositionArray.push({
+        "title": item[1],
+        "qty": item[3]
+      })
+    } else {
+      dispositionArray[dispositionArray.length - 1].title += item[1]
+    }
     item = reg.exec(tempStr)
   }
   return dispositionArray
 }
 function getDepartment(str) {
-  let reg = /Department[^ ]+ ([^\\{]+)/gmi
+  let reg = /Department[^ ]+ ([^\\\{\}]+)/gmi
   return reg.exec(str)[1]
 }
 

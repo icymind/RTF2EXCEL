@@ -66,7 +66,7 @@ describe("test wirte to excel", function() {
     row.getCell("auditsamplequantity").value.should.equal("20")
     row.getCell("ponumber").value.should.equal("4500771596")
     row.getCell("auditrejectquantity").value.should.equal("3")
-    row.getCell("disposition").value.should.equal("Vendor 100% Sort/Repair then Ship;Future Factory Audit Required;DC Receipt Audit Required")
+    row.getCell("disposition").value.should.equal("Vendor 100% Sort/Repair then Ship; Future Factory Audit Required; DC Receipt Audit Required")
     row.getCell("workmanshipmajor").value.should.equal(3)
     row.getCell("workmanshipminor").value.should.equal(0)
     row.getCell("workmanshiprsi").value.should.equal(0)
