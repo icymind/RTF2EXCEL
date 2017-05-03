@@ -78,7 +78,7 @@ function extract(str) {
     rtf["vendor"] = getVendor(str)
     rtf["department"] = getDepartment(str)
   } catch(err) {
-    console.log(err)
+    // console.log(err)
     return {"parse error": true}
   }
   return rtf

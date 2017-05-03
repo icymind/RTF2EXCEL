@@ -57,8 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let workbook= createWorkbook(sheetName)
         console.log("workbook created")
         files.forEach((file, index) => {
-          // btnProcess.innerHTML = `${index + 1}/${filesAmount}`
-          // console.log(`Processing ${file}`)
+          console.log(`Processing ${index + 1} / ${filesAmount}`)
           let rtf = extractFromFile(file)
           if (rtf["parse error"]) {
             console.log(`add ${file} to cantHandleFiles`)
