@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("workbook created")
         files.forEach((file, index) => {
           // btnProcess.innerHTML = `${index + 1}/${filesAmount}`
-          console.log(`Processing ${file}`)
+          // console.log(`Processing ${file}`)
           let rtf = extractFromFile(file)
           if (rtf["parse error"]) {
             console.log(`add ${file} to cantHandleFiles`)
@@ -66,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           writeToWorkbook(workbook, sheetName, rtf)
         })
+        workbook = null
 
         return new Promise((resolve, reject) => {
           mdui.alert(`${filesAmount} files has been processed(${cantHandleFiles.size} fails; ${filesAmount - cantHandleFiles.size} sucess ).\nChoose a filename to save excel.`, () => {
