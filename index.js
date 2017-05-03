@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         return new Promise((resolve, reject) => {
           mdui.alert(`${filesAmount} files has been processed(${cantHandleFiles.size} fails; ${filesAmount - cantHandleFiles.size} sucess ).\nChoose a filename to save excel.`, () => {
-            dialog.showSaveDialog({title: "choose a filename"}, fileName => {
+            dialog.showSaveDialog({title: "choose a filename", filters: [{name: "xlsx", extensions: ["xlsx"]}], defaultPath: "rtf2excel.xlsx"}, fileName => {
               if (fileName) {
                 return workbook.xlsx.writeFile(fileName)
               }
