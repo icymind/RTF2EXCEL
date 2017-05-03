@@ -1,3 +1,4 @@
+const fs = require("fs")
 // 对一行字符串进行操作, 返回一个对象
 // 对象: {
 // season:"some",
@@ -12,10 +13,52 @@
 // ]
 // }
 
+const nonconformityType = [
+  "critical",
+  "fabric",
+  "hangtag",
+  "label",
+  "measurement",
+  "packaging",
+  "packing",
+  "trim/findings",
+  "vendor spec deviation",
+  "workmanship",
+  "rei spec inaccuracy"
+]
+
+function classify(nonconformityTitle) {
+
+  let type = nonconformityTitle.split("-")[1]
+  if (!nonconformityType.includes(type.toLowerCase())) {
+    throw new Error(`unkown nonconformity type. nonconformityTitle: ${nonconformityTitle}, type: ${type}`)
+  }
+  return type
+}
+
+function extractFromFile(file) {
+  let rtf
+  if (fs.statSync(file).isFile()) {
+    rtf = extract(fs.readFileSync(file))
+    rtf["File Path"] = file
+    if (rtf["parse error"]) {
+      rtf["Parse Info"] = "Can not process the file"
+    } else {
+      rtf["Parse Info"] = "Parse sucess"
+    }
+  } else {
+    rtf = {
+      "parse error": true,
+      "File Path": file,
+      "Parse Info": "Can not read the file."
+    }
+  }
+  return rtf
+}
 
 function extract(str) {
   // todo:一旦有某个开始不匹配, 则修改 error 属性
-  let rtf = {error: false}
+  let rtf = {"parse error": false}
   try {
     rtf["rei style number"] = getReiStyleNumber(str)
     rtf["audit level"] = getAuditLevel(str)
@@ -36,7 +79,7 @@ function extract(str) {
     rtf["department"] = getDepartment(str)
   } catch(err) {
     console.log(err)
-    return {error: true}
+    return {"parse error": true}
   }
   return rtf
 }
@@ -144,9 +187,21 @@ function getNonconformityDetails(str) {
     let specReg = /([^\{\\]+)[^ ]*( ([0-9]+)[^ ]* ([0-9]+)[^ ]* ([0-9]+)[^ ]* ([0-9]+).*)?/gmi
     let specStr = specReg.exec(item[1])
     if (specStr[2] !== undefined) {
+      let type
+      try {
+        type = classify(specStr[1])
+      } catch(error) {
+        throw new Error(`unkown nonconformity type: ${type}`)
+      }
       detailsArray.push({
-        title: specStr[1],
-        qty: [specStr[3],specStr[4],specStr[5],specStr[6]]
+        "title": specStr[1],
+        "type": classify(specStr[1]),
+        "qty": {
+          "minor": specStr[3],
+          "major": specStr[4],
+          "critical": specStr[5],
+          "rsi": specStr[6]
+        }
       })
     } else {
       //当前只有一个字段, 没有匹配到后面的 qty. 说明这个字段是上一个类别 title 的延续
@@ -184,4 +239,4 @@ function getDepartment(str) {
   return reg.exec(str)[1]
 }
 
-module.exports = {extract: extract}
+module.exports = {extract: extract, extractFromFile: extractFromFile, nonconformityType: nonconformityType}

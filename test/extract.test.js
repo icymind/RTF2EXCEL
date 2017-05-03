@@ -5,7 +5,7 @@ const path = require("path")
 const {extract} = require(path.join(__dirname, "../extract.js"))
 
 
-describe.only("Test extract(str)", function(){
+describe("Test extract(str)", function(){
 
   it("demo", function(){
     [1, 3].length.should.equal(2)
@@ -30,9 +30,9 @@ describe.only("Test extract(str)", function(){
       })
     }).then(function(data) {
       const rtf = extract(data)
-      assert(rtf.error === false, "extract should handle this file.")
+      assert(rtf["parse error"] === false, "extract should handle this file.")
       rtf.should.to.be.eql({
-        "error": false,
+        "parse error": false,
         "season": "F13",
         "department": "35 - Packs",
         "rei style number": "854042",
@@ -57,15 +57,33 @@ describe.only("Test extract(str)", function(){
         "nonconformity details": [
           {
             "title": "R6-REI Spec Inaccuracy-verified trims/findings",
-            "qty": ["0", "0", "0", "0"]
+            "type": "REI Spec Inaccuracy",
+            "qty": {
+              "minor": "0",
+              "major": "0",
+              "critical": "0",
+              "rsi": "0"
+            }
           },
           {
             "title": "R6-REI Spec Inaccuracy-verified trims/findings",
-            "qty": ["0", "0", "0", "0"]
+            "type": "REI Spec Inaccuracy",
+            "qty": {
+              "minor": "0",
+              "major": "0",
+              "critical": "0",
+              "rsi": "0"
+            }
           },
           {
             "title": "T1-Trim/Findings-buttons or snaps",
-            "qty": ["0", "1", "0", "0"]
+            "type": "Trim/Findings",
+            "qty": {
+              "minor": "0",
+              "major": "1",
+              "critical": "0",
+              "rsi": "0"
+            }
           }
         ]
       })
@@ -80,9 +98,9 @@ describe.only("Test extract(str)", function(){
       })
     }).then(function(data) {
       const rtf = extract(data)
-      assert(rtf.error === false, "extract should handle this file.")
+      assert(rtf["parse error"] === false, "extract should handle this file.")
       rtf.should.to.be.eql({
-        "error": false,
+        "parse error": false,
         "season": "S13",
         "department": "16 - Menswear",
         "rei style number": "844567",
@@ -115,7 +133,13 @@ describe.only("Test extract(str)", function(){
         "nonconformity details": [
           {
             "title": "W1-Workmanship-alignment",
-            "qty": ["0", "3", "0", "0"]
+            "type": "Workmanship",
+            "qty": {
+              "minor": "0",
+              "major": "3",
+              "critical": "0",
+              "rsi": "0"
+            }
           },
         ]
       })
@@ -130,9 +154,9 @@ describe.only("Test extract(str)", function(){
       })
     }).then(function(data) {
       const rtf = extract(data)
-      assert(rtf.error === false, "extract should handle this file.")
+      assert(rtf["parse error"] === false, "extract should handle this file.")
       rtf.should.to.be.eql({
-        "error": false,
+        "parse error": false,
         "season": "S13",
         "department": "36 - Travel",
         "rei style number": "844629",
@@ -157,7 +181,13 @@ describe.only("Test extract(str)", function(){
         "nonconformity details": [
           {
             "title": "W16-Workmanship-threads loose/untrimmed",
-            "qty": ["2", "0", "0", "0"]
+            "type": "Workmanship",
+            "qty": {
+              "minor": "2",
+              "major": "0",
+              "critical": "0",
+              "rsi": "0"
+            }
           }
         ]
       })

@@ -1,18 +1,19 @@
 // const fs = require("fs")
 const fs = require("fs-extra")
 const path = require("path")
-const {extract} = require(path.join(__dirname, "extract.js"))
-const {merge, collect} = require("./task.js")
+const {extractFromFile} = require(path.join(__dirname, "extract.js"))
 const {dialog} = require("electron").remote
 const glob = require("glob")
+const {createWorkbook, writeToWorkbook} = require(path.join(__dirname, "./excel.js"))
 
 // todo 将getElementById 放到 domloaded 中
 
-document.addEventListener("DOMContentLoaded", (event) => {
+
+document.addEventListener("DOMContentLoaded", () => {
   const btnProcess = document.getElementById("btn-process")
   const btnSelect = document.getElementById("btn-select")
   const textPath = document.getElementById("path")
-  const indicator = document.getElementById("indicator")
+  // const indicator = document.getElementById("indicator")
 
   textPath.addEventListener("keyup", () => {
     let isEmpty = textPath.value.length === 0 ? true : false
@@ -35,7 +36,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     btnProcess.disabled = true
     btnProcess.value = "Processing"
     const dirPath = textPath.value
-    const task = document.querySelector("input[name='task']:checked").value
+    // const task = document.querySelector("input[name='task']:checked").value
+    const task = "merge"
     try {
       fs.statSync(dirPath).isDirectory()
     } catch(err) {
@@ -43,53 +45,38 @@ document.addEventListener("DOMContentLoaded", (event) => {
       return
     }
 
-    if (task === "collect") {
+    if (task === "merge") {
 
       glob(`${dirPath}/**/*.rtf`, {}, (err, files) => {
 
         let filesAmount = files.length
-        console.log(`${filesAmount} files to be collect.`)
-        let categoriesSet = new Set()
         let cantHandleFiles = new Set()
-        let rtf = null
+        console.log(`${filesAmount} files to be merge.`)
+        let sheetName = "Analysis"
 
+        let workbook= createWorkbook(sheetName)
+        console.log("workbook created")
         files.forEach((file, index) => {
           // btnProcess.innerHTML = `${index + 1}/${filesAmount}`
-          try {
-            rtf = extract(fs.readFileSync(file))
-            if (rtf.error === true) {
-              cantHandleFiles.push(file)
-            } else {
-              rtf["nonconformity details"].forEach(detail => {
-                categoriesSet.add(detail.title)
-              })
-            }
-          } catch(err) {
-            console.log(`无法解析文件: ${file}`)
+          console.log(`Processing ${file}`)
+          let rtf = extractFromFile(file)
+          if (rtf["parse error"]) {
+            console.log(`add ${file} to cantHandleFiles`)
             cantHandleFiles.add(file)
           }
+          writeToWorkbook(workbook, sheetName, rtf)
         })
 
         return new Promise((resolve, reject) => {
-          // btnProcess.innerHTML = "DONE"
-          if (categoriesSet.size === 0) {
-            console.log("size === 0")
-            return resolve()
-          }
-          mdui.alert(`${categoriesSet.size} categories has been extracted. Choose a filename to save categories.`, () => {
+          mdui.alert(`${filesAmount} files has been processed(${cantHandleFiles.size} fails; ${filesAmount - cantHandleFiles.size} sucess ).\nChoose a filename to save excel.`, () => {
             dialog.showSaveDialog({title: "choose a filename"}, fileName => {
               if (fileName) {
-                fs.writeFile(fileName, [...categoriesSet].join("\n"), err => {
-                  if (err) {
-                    mdui.alert("an error ocurred creating the file" + err.message)
-                  }
-                })
+                return workbook.xlsx.writeFile(fileName)
               }
-              resolve()
             })
           })
         }).then(() => {
-          mdui.alert(`Can not handle ${cantHandleFiles.size} files. please choose a directory to save cantHandleFiles's copy.`, () => {
+          mdui.alert(`please choose a directory to save cantHandleFiles's copy.`, () => {
             dialog.showOpenDialog({properties: ["openDirectory"]}, selectedPaths => {
               if (selectedPaths) {
                 cantHandleFiles.forEach(file => {
@@ -106,11 +93,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
         })
       })
       btnProcess.disabled = false
-    } else if (task === "merge") {
+    } else if (task === "collect") {
       glob(`${path}/**/*.rtf`, {}, (err, files) => {
-
-        console.log(`${files.length} files to be merge.`)
+        console.log(`${files.length} files to be collect.`)
       })
     }
   })
 })
+
+module.exports = {writeToWorkbook: writeToWorkbook, createWorkbook: createWorkbook}
