@@ -1,90 +1,90 @@
 const fs = require("fs")
-// 对一行字符串进行操作, 返回一个对象
-// 对象: {
-// season:"some",
-// ...,
-// "nonconformity details": [
-//  title: "workshop",
-//  qty: [0,0,0,0,0,0]
-// ],
-// "disposition": [
-//  title: "sfsfs",
-//  qty: "12"
-// ]
-// }
-
 const nonconformityType = [
-  "critical",
-  "fabric",
-  "hangtag",
-  "label",
-  "measurement",
-  "packaging",
-  "packing",
-  "trim/findings",
-  "vendor spec deviation",
-  "workmanship",
-  "rei spec inaccuracy"
+  "Critical",
+  "Fabric",
+  "Hangtag",
+  "Label",
+  "Measurement",
+  "Packaging",
+  "Packing",
+  "Trim/Findings",
+  "Vendor Spec Deviation",
+  "Workmanship",
+  "REI Spec Inaccuracy"
 ]
+const rtfFields = {
+  // "AuditID": getAuditID,
+  // "AuditDate": getAuditDate,
+  "Department": getDepartment,
+  "REI Style Number": getREIStyleNumber,
+  "Audit Level": getAuditLevel,
+  "Auditor": getAuditor,
+  "Season": getSeason,
+  "Product Name": getProductName,
+  "Audit Quality Level": getAuditQualityLevel,
+  // "Audit Type": getAuditType,
+  "Vendor": getVendor,
+  "GA Product Number": getGAProductNumber,
+  "Audit Lot Size": getAuditLotSize,
+  "Production Status": getProductionStatus,
+  "Factory": getFactory,
+  // "Product Spec": getProductSpec,
+  "Audit Sample Quantity": getAuditSampleQuantity,
+  "PO Number": getPONumber,
+  // "Product Lifecycle": getProductLifecycle,
+  "Audit Reject Quantity": getAuditRejectQuantity,
+  "Nonconformity Details": getNonconformityDetails,
+  "Product Disposition Details": getProductDispositionDetails
+}
 
 function classify(nonconformityTitle) {
 
-  let type = nonconformityTitle.split("-")[1]
-  if (!nonconformityType.includes(type.toLowerCase())) {
-    throw new Error(`unkown nonconformity type. nonconformityTitle: ${nonconformityTitle}, type: ${type}`)
+  let classifyError = new Error(`unkown nonconformity type. nonconformityTitle: ${nonconformityTitle}`)
+  classifyError.name = "classifyError"
+
+  try {
+    let type = nonconformityTitle.split("-")[1]
+    type = type.toLowerCase()
+    for (let i = 0, len = nonconformityType.length; i < len; i++){
+      if (nonconformityType[i].toLowerCase() === type) {
+        return nonconformityType[i]
+      }
+    }
+  } catch(error) {
+    throw classifyError
   }
-  return type
+
 }
 
 function extractFromFile(file) {
-  let rtf
+  let rtf = {}
   if (fs.statSync(file).isFile()) {
     rtf = extract(fs.readFileSync(file))
-    rtf["File Path"] = file
-    if (rtf["parse error"]) {
-      rtf["Parse Info"] = "Can not process the file"
-    } else {
-      rtf["Parse Info"] = "Parse sucess"
-    }
   } else {
-    rtf = {
-      "parse error": true,
-      "File Path": file,
-      "Parse Info": "Can not read the file."
-    }
+    rtf["Parse Error"] = "Can not read the file."
   }
+  rtf["File Path"] = file
   return rtf
 }
 
 function extract(str) {
   // todo:一旦有某个开始不匹配, 则修改 error 属性
-  let rtf = {"parse error": false}
-  try {
-    rtf["rei style number"] = getReiStyleNumber(str)
-    rtf["audit level"] = getAuditLevel(str)
-    rtf["auditor"] = getAuditor(str)
-    rtf["season"] = getSeason(str)
-    rtf["audit lot size"] = getAuditLotSize(str)
-    rtf["audit quality level"] = getAuditQualityLevel(str)
-    rtf["audit reject quantity"] = getAuditRejectQuantity(str)
-    rtf["audit sample quantity"] = getAuditSampleQuantity(str)
-    rtf["disposition"] = getDisposition(str)
-    rtf["factory"] = getFactory(str)
-    rtf["ga product number"] = getGAProductNumber(str)
-    rtf["nonconformity details"] = getNonconformityDetails(str)
-    rtf["po number"] = getPONumber(str)
-    rtf["product name"] = getProductName(str)
-    rtf["production status"] = getProductionStatus(str)
-    rtf["vendor"] = getVendor(str)
-    rtf["department"] = getDepartment(str)
-  } catch(err) {
-    // console.log(err)
-    return {"parse error": true}
+  let rtf = {"Parse Error": ""}
+  let errorMsg = []
+  for (let field in rtfFields) {
+    try {
+      rtf[field] = rtfFields[field](str)
+    } catch(err) {
+      errorMsg.push(field)
+    }
+  }
+  if (errorMsg.length !== 0) {
+    rtf["Parse Error"] = `Can not extract info: [ ${errorMsg.join("; ")} ]`
   }
   return rtf
 }
 
-function getReiStyleNumber(str) {
+function getREIStyleNumber(str) {
   let reg = /REI Style Number[^ ]+ ([^\\\{]+)/gmi
   return reg.exec(str)[1]
 }
@@ -191,22 +191,24 @@ function getNonconformityDetails(str) {
       try {
         type = classify(specStr[1])
       } catch(error) {
-        throw new Error(`unkown nonconformity type: ${type}`)
+        let classifyError = new Error(`unkown nonconformity type: ${type}`)
+        classifyError.name = "classifyError"
+        throw classifyError
       }
       detailsArray.push({
-        "title": specStr[1],
-        "type": classify(specStr[1]),
-        "qty": {
-          "minor": specStr[3],
-          "major": specStr[4],
-          "critical": specStr[5],
-          "rsi": specStr[6]
+        "Nonconformity": specStr[1],
+        "NonconformityType": classify(specStr[1]),
+        "QTY": {
+          "Minor": specStr[3],
+          "Major": specStr[4],
+          "Critical": specStr[5],
+          "RSI": specStr[6]
         }
       })
     } else {
       //当前只有一个字段, 没有匹配到后面的 qty. 说明这个字段是上一个类别 title 的延续
       if (detailsArray.length !== 0) {
-        detailsArray[detailsArray.length - 1].title += specStr[1]
+        detailsArray[detailsArray.length - 1]["Nonconformity"] += specStr[1]
       } else {
         //如果数组长度为零, 说明它不是谁的延续.
         throw new Error("不规律的文件, 请手动处理")
@@ -218,7 +220,7 @@ function getNonconformityDetails(str) {
   return detailsArray
 
 }
-function getDisposition(str) {
+function getProductDispositionDetails(str) {
   // let reg = /.+Disposition[^ ]+ ([^\\{\}]+)/gmi
   let reg = /Disposition.+ Quantity.+ Comments.+ _{8,}(.*) Audit Done/gmi
   let tempStr = reg.exec(str)[1]
@@ -231,11 +233,11 @@ function getDisposition(str) {
   while (item) {
     if (item[2]) {
       dispositionArray.push({
-        "title": item[1],
-        "qty": item[3]
+        "Disposition": item[1],
+        "Quantity": item[3]
       })
     } else {
-      dispositionArray[dispositionArray.length - 1].title += item[1]
+      dispositionArray[dispositionArray.length - 1]["Disposition"] += item[1]
     }
     item = reg.exec(tempStr)
   }
@@ -245,5 +247,10 @@ function getDepartment(str) {
   let reg = /Department[^ ]+ ([^\\\{\}]+)/gmi
   return reg.exec(str)[1]
 }
+function getAuditID(str) {}
+function getAuditDate(str) {}
+function getAuditType(str) {}
+function getProductSpec(str) {}
+function getProductLifecycle(str) {}
 
 module.exports = {extract: extract, extractFromFile: extractFromFile, nonconformityType: nonconformityType}

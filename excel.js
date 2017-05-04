@@ -4,11 +4,10 @@ const {nonconformityType} = require(path.join(__dirname, "extract.js"))
 const Excel = require("exceljs")
 
 function getNonconformityId(type) {
-  assert.equal(type, type.toLowerCase(), "type must by lowercase")
   let ids = []
-  let qtyTypes = ["minor", "major", "critical", "rsi"]
+  let qtyTypes = ["Minor", "Major", "Critical", "RSI"]
   qtyTypes.forEach(qtyType => {
-    let id = `${type.split(" ").join("")}${qtyType}`.toLowerCase()
+    let id = `${type} ${qtyType}`
     ids.push({
       qtyType: qtyType,
       id: id
@@ -16,11 +15,19 @@ function getNonconformityId(type) {
   })
   return ids
 }
+function fillNonconformityQTY(row) {
+  let nonconformityQtyType = ["Minor", "Major", "Critical", "RSI"]
+  nonconformityType.forEach(type => {
+    nonconformityQtyType.forEach(qtyType => {
+      row[`${type} ${qtyType}`] = 0
+    })
+  })
+}
 function getFileds() {
   let fileds = [
     "File Path",
     "Parse Error",
-    "Parse Info",
+    // "Parse Info",
     "Season",
     "Vendor",
     "Factory",
@@ -33,9 +40,9 @@ function getFileds() {
     "Audit Quality Level",
     "Audit Sample Quantity",
     "Audit Reject Quantity",
-    "Disposition"
+    "Product Disposition Details"
   ]
-  let nonconformityQtyType = ["minor", "major", "critical", "rsi"]
+  let nonconformityQtyType = ["Minor", "Major", "Critical", "RSI"]
   nonconformityType.forEach(type => {
     nonconformityQtyType.forEach(qtyType => {
       fileds.push(`${type} ${qtyType}`)
@@ -52,7 +59,7 @@ function createWorkbook(sheetName) {
   fileds.forEach(filed => {
     sheetHeaders.push({
       header: filed,
-      key: filed.toLowerCase().split(" ").join("")
+      key: filed
     })
   })
   // console.log(sheetHeaders)
@@ -69,28 +76,31 @@ function writeToWorkbook(workbook, sheetName, rtf) {
   }
   let row = {}
   let hasSeenType = new Set()
+
+  // fill Nonconformity Details QTY with 0
+  fillNonconformityQTY(row)
+
   for (let filed in rtf) {
-    if (filed.toLowerCase() === "nonconformity details") {
+    if (filed === "Nonconformity Details") {
       rtf[filed].forEach(detail => {
-        let type = detail.type.toLowerCase()
+        let type = detail["NonconformityType"]
         if (hasSeenType.has(type)) {
           getNonconformityId(type).forEach(item => {
-            row[item.id] = parseInt(detail.qty[item.qtyType]) + parseInt(row[item.id])
+            row[item.id] = parseInt(detail.QTY[item.qtyType]) + parseInt(row[item.id])
           })
         } else {
           hasSeenType.add(type)
           getNonconformityId(type).forEach(item => {
-            row[item.id] = parseInt(detail.qty[item.qtyType])
+            row[item.id] = parseInt(detail.QTY[item.qtyType])
           })
         }
       })
-
-    } else if (filed.toLowerCase() === "disposition") {
+    } else if (filed === "Product Disposition Details") {
       let dispositionTitles = []
-      rtf[filed].forEach(detail => dispositionTitles.push(detail.title))
-      row[filed.toLowerCase()] = dispositionTitles.join("; ")
+      rtf[filed].forEach(detail => dispositionTitles.push(detail["Disposition"]))
+      row[filed] = dispositionTitles.join("; ")
     } else {
-      row[filed.toLowerCase().split(" ").join("")] = rtf[filed]
+      row[filed] = rtf[filed]
     }
   }
   // console.log(row)

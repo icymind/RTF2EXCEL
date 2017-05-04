@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         files.forEach((file, index) => {
           console.log(`Processing ${index + 1} / ${filesAmount}`)
           let rtf = extractFromFile(file)
-          if (rtf["parse error"]) {
+          if (rtf["Parse Error"]) {
             console.log(`add ${file} to cantHandleFiles`)
             cantHandleFiles.add(file)
           }
