@@ -416,7 +416,53 @@ const file2rtfs = [
         }
       ]
     }
-  }
+  },
+  {
+    file: "colon.rtf",
+    rtf: {
+      "Parse Error": "",
+      "File Path": path.join(__dirname, "colon.rtf"),
+      // "Parse Info": "Parse sucess",
+      "Season": "S17",
+      "Audit ID": "",
+      "Audit Date": "1/9/2017",
+      "Audit Type": "Attribute with measurements",
+      "Product Spec": " ",
+      "Product Lifecycle": "Updated",
+      "Department": "Menswear",
+      "REI Style Number": "892144",
+      "Audit Level": "Normal",
+      "Auditor": "Coco Chen",
+      "Product Name": "Talusphere Jacket",
+      "Audit Quality Level": "2.5",
+      "Audit Lot Size": "2020",
+      "Production Status": "Supplier Pre-ship",
+      "Vendor": "YOUNGONE CORPORATION",
+      "Factory": "YOUNGONE CORPORATION",
+      "GA Product Number": "17626",
+      "Audit Sample Quantity": "32",
+      "PO Number": "4504511354/4504503644",
+      "Audit Reject Quantity": "3",
+      "Product Disposition Details": [
+        {
+          "Disposition": "Accept as is",
+          "Quantity": "2020"
+        }
+      ],
+      "Nonconformity Details": [
+        {
+          "Nonconformity": "W11-Workmanship-puckering",
+          "NonconformityType": "Workmanship",
+          "QTY": {
+            "Minor": "2",
+            "Major": "1",
+            "Critical": "0",
+            "RSI": "0"
+          }
+        }
+      ]
+    }
+  },
 ]
 
 module.exports = { file2rtfs: file2rtfs }

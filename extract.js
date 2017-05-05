@@ -92,31 +92,57 @@ function extract(str) {
 }
 
 function getREIStyleNumber(str) {
-  let combine = `REI Style Number${controlCommand}+(${plainText})`
+  let combine = `REI Style Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Audit Level`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+  if (result === null || !/\d+/.test(result)) {
+    throw new Error(`Can not extract info: REI Style Number: ${result}`)
+  }
+  return result
 }
 function getAuditLevel(str) {
-  let combine = `Audit Level${controlCommand}+(${plainText})`
+  let combine = `Audit Level${controlCommand}+(?:: )?${controlCommand}+(${plainText})${controlCommand}+Auditor`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*(\d+)/.exec(result)
+  if (cleanup) {
+    result = cleanup[1]
+  }
+  if (result === null || !/\w+/.test(result)) {
+    throw new Error()
+  }
+  return result
 }
 function getAuditor(str) {
-  let combine = `Auditor${controlCommand}+(${plainText})`
+  let combine = `Auditor${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Season`
   let reg = new RegExp(combine, "mi")
+  let result = reg.exec(str)[1]
+  if (result === null || !/\w+/.test(result)) {
+    throw new Error()
+  }
   return reg.exec(str)[1]
 }
 function getSeason(str) {
-  let combine = `Season${controlCommand}+(${plainText})`
+  let combine = `Season${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Product Name`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*(\w+)/.exec(result)
+  if (cleanup) {
+    result = cleanup[1]
+  }
+  if (result === null || !/\w+/.test(result)) {
+    throw new Error()
+  }
+  return result
 }
 function getProductName(str) {
-  let combine = `Product Name${controlCommand}+(${plainText})`
+  let combine = `Product Name${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Audit Quality Level`
   let reg = new RegExp(combine, "mi")
   let productName = reg.exec(str)[1]
 
-  combine = `Audit Quality Level${controlCommand}+${plainText}([\\s\\S]*)Audit Type`
+  combine = `Audit Quality Level${controlCommand}+(?: : )?${controlCommand}+${plainText}([\\s\\S]*)Audit Type`
   reg = new RegExp(combine, "mi")
   let remainText = reg.exec(str)
   remainText = remainText[1]
@@ -132,17 +158,27 @@ function getProductName(str) {
 
 }
 function getAuditQualityLevel(str) {
-  let combine = `Audit Quality Level${controlCommand}+(${plainText})`
+  // todo: 添加 audit type 会出错
+  let combine = `Audit Quality Level${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*([\d.]+)/.exec(result)
+  if (cleanup) {
+    result = cleanup[1]
+  }
+  if (result === null || !/[\d.]+/.test(result)) {
+    throw new Error()
+  }
+  return result
 
 }
 function getVendor(str) {
-  let combine = `Vendor${controlCommand}+(${plainText})`
+  let combine = `Vendor${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+GA Product Number`
   let reg = new RegExp(combine, "mi")
   let vendor = reg.exec(str)[1]
 
-  combine = `Audit Lot Size${controlCommand}+${plainText}([\\s\\S]*)Production Status`
+  combine = `Audit Lot Size${controlCommand}+(?: : )?${controlCommand}+${plainText}([\\s\\S]*)Production Status`
   reg = new RegExp(combine, "mi")
   let remainText = reg.exec(str)
   remainText = remainText[1]
@@ -158,29 +194,30 @@ function getVendor(str) {
 
 }
 function getGAProductNumber(str) {
-  let combine = `GA Product Number${controlCommand}+(${plainText})`
+  let combine = `GA Product Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Audit Lot Size`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 
 }
 function getAuditLotSize(str) {
-  let combine = `Audit Lot Size${controlCommand}+(${plainText})`
+  // todo 末尾添加production status时,会出错
+  let combine = `Audit Lot Size${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 
 }
 function getProductionStatus(str) {
-  let combine = `Production Status${controlCommand}+(${plainText})`
+  let combine = `Production Status${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Factory`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 
 }
 function getFactory(str) {
-  let combine = `Factory${controlCommand}+(${plainText})`
+  let combine = `Factory${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Product Spec`
   let reg = new RegExp(combine, "mi")
   let factory = reg.exec(str)[1]
 
-  combine = `Sample Quantity${controlCommand}+${plainText}([\\s\\S]*)PO Number`
+  combine = `Sample Quantity${controlCommand}+(?: : )?${controlCommand}+${plainText}([\\s\\S]*)PO Number`
   reg = new RegExp(combine, "mi")
   let remainText = reg.exec(str)
   remainText = remainText[1]
@@ -196,21 +233,47 @@ function getFactory(str) {
   return factory
 }
 function getAuditSampleQuantity(str) {
-  let combine = `Audit Sample Quantity${controlCommand}+(${plainText})`
+  // todo
+  let combine = `Audit Sample Quantity${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*(\d+)/.exec(result)
+  if (cleanup) {
+    result = cleanup[1]
+  }
+  if (result === null || !/\d+/.test(result)) {
+    throw new Error("Can not extract info: REI Style Number")
+  }
+
+  return result
 
 }
 function getPONumber(str) {
-  let combine = `PO Number${controlCommand}+(${plainText})`
+  // let combine = `PO Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Product Lifecycle`
+  let combine = `PO Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 
 }
 function getAuditRejectQuantity(str) {
-  let combine = `Audit Reject Quantity${controlCommand}+(${plainText})`
+  // todo
+  let combine = `Audit Reject Quantity${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*(\d+)/.exec(result)
+  // console.log(cleanup)
+  if (cleanup) {
+    // console.log("cleanup")
+    result = cleanup[1]
+  }
+  if (result === null || !/\d+/.test(result)) {
+    throw new Error("Can not extract info: REI Style Number")
+  }
+
+  return result
 
 }
 function getNonconformityDetails(str) {
@@ -304,8 +367,8 @@ function getProductDispositionDetails(str) {
       }
       field = fieldReg.exec(line)
     }
-    console.log("lineTabPosition", lineTabPosition)
-    console.log("fieldArray", fieldArray)
+    // console.log("lineTabPosition", lineTabPosition)
+    // console.log("fieldArray", fieldArray)
     let fieldArrayLength = fieldArray.length
     if (fieldArrayLength === 3) {
       assert.equal(parseInt(fieldArray[1]), fieldArray[1], "Quantity must be number")
@@ -332,33 +395,62 @@ function getProductDispositionDetails(str) {
   return dispositionArray
 }
 function getDepartment(str) {
-  let combine = `Department${controlCommand}+(${plainText})`
+  let combine = `Department${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 }
 function getAuditID(str) {
-  let combine = `AuditID\\/Date${controlCommand}+(${plainText})`
+  let combine = `AuditID\\/Date${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+(${plainText})${controlCommand}+Department`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*(\d+)/.exec(result)
+  // console.log(cleanup)
+  if (cleanup) {
+    console.log("cleanup")
+    result = cleanup[1]
+  }
+  if (result === null || !/\d+/.test(result)) {
+    throw new Error("Can not extract info: REI Style Number")
+  }
+
+  if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(result)) {
+    result = ""
+  }
+
+  return result
 }
 function getAuditDate(str) {
-  let combine = `AuditID\\/Date${controlCommand}+${plainText}${controlCommand}+(${plainText})`
+  let combine = `AuditID\\/Date${controlCommand}+(?: : )?${controlCommand}+${plainText}${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+
+  let cleanup = /\s*:\s*([/\w]+)/.exec(result)
+  if (cleanup) {
+    // console.log("cleanup")
+    result = cleanup[1]
+  }
+  console.log(result)
+  if (result === null || !/\d{1,4}\/\d{1,4}\/\d{1,4}/.test(result)) {
+    throw new Error("Can not extract info")
+  }
+
+  return result
 
 }
 function getAuditType(str) {
-  let combine = `Audit Type${controlCommand}+(${plainText})`
+  let combine = `Audit Type${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 }
 function getProductSpec(str) {
-  let combine = `Product Spec${controlCommand}+(${plainText})`
+  let combine = `Product Spec${controlCommand}+(?: : )?${controlCommand}+\\b(${plainText})${controlCommand}+Audit Sample Quantity`
   let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  let result = reg.exec(str)[1]
+  return result
 }
 function getProductLifecycle(str) {
-  let combine = `Product Lifecycle${controlCommand}+(${plainText})`
+  let combine = `Product Lifecycle${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
   let reg = new RegExp(combine, "mi")
   return reg.exec(str)[1]
 }
