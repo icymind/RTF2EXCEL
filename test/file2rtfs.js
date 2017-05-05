@@ -7,34 +7,35 @@ const file2rtfs = [
       "File Path": path.join(__dirname, "multi-line.rtf"),
       // "Parse Info": "Parse sucess",
       "Season": "F16",
-      "Department": "Childrenswear",
-      "REI Style Number": "101229",
+      "Audit ID": "1160483",
+      "Audit Date": "8/29/2016",
+      "Audit Type": "Attribute only",
+      "Product Spec": "v01",
+      "Product Lifecycle": "Carry-over",
+      "Department": "Camping Gear",
+      "REI Style Number": "877258",
       "Audit Level": "Normal",
-      "Auditor": "Coco Chen",
-      "Product Name": "650D Down Jacket-Kids",
+      "Auditor": "Bert Ou",
+      "Product Name": "Flexlite Chair updated",
       "Audit Quality Level": "2.5",
-      "Audit Lot Size": "4710",
-      "Production Status": "Supplier Pre-ship",
-      "Vendor": "PAN PACIFIC CO KR",
-      "Factory": "VIET PACIFIC CLOTHING CO LTD",
-      "GA Product Number": "18587",
+      "Audit Lot Size": "1400",
+      "Production Status": "Supplier Mfg In-line",
+      "Vendor": "QINGDAO YOUNGONE SPORTS PRODUCTS CO LTD",
+      "Factory": "QINGDAO YOUNGONE SPORTS PRODUCTS CO LTD",
+      "GA Product Number": "16948",
       "Audit Sample Quantity": "32",
-      "PO Number": "4503702415/4503654565",
+      "PO Number": "4503521218",
       "Audit Reject Quantity": "3",
       "Product Disposition Details": [
         {
-          "Disposition": "Scrap",
-          "Quantity": "2"
-        },
-        {
           "Disposition": "Vendor 100% Sort/Repair then Hold for Re-Audit",
-          "Quantity": "4708"
+          "Quantity": "1400"
         }
       ],
       "Nonconformity Details": [
         {
-          "Nonconformity": "F1-Fabric-flaw",
-          "NonconformityType": "Fabric",
+          "Nonconformity": "W6-Workmanship-needle holes",
+          "NonconformityType": "Workmanship",
           "QTY": {
             "Minor": "0",
             "Major": "2",
@@ -43,17 +44,17 @@ const file2rtfs = [
           }
         },
         {
-          "Nonconformity": "W7-Workmanship-other",
+          "Nonconformity": "W15-Workmanship-stitching",
           "NonconformityType": "Workmanship",
           "QTY": {
-            "Minor": "0",
-            "Major": "3",
+            "Minor": "1",
+            "Major": "0",
             "Critical": "0",
             "RSI": "0"
           }
         },
         {
-          "Nonconformity": "W16-Workmanship-threads loose/untrimmed",
+          "Nonconformity": "W15-Workmanship-stitching",
           "NonconformityType": "Workmanship",
           "QTY": {
             "Minor": "2",
@@ -63,15 +64,35 @@ const file2rtfs = [
           }
         },
         {
-          "Nonconformity": "W5-Workmanship-dirt/oil",
-          "NonconformityType": "Workmanship",
+          "Nonconformity": "P1-Packaging-other",
+          "NonconformityType": "Packaging",
           "QTY": {
             "Minor": "0",
-            "Major": "1",
+            "Major": "3",
             "Critical": "0",
             "RSI": "0"
           }
-        }
+        },
+        {
+          "Nonconformity": "M2-Measurement-over tolerance",
+          "NonconformityType": "Measurement",
+          "QTY": {
+            "Minor": "0",
+            "Major": "3",
+            "Critical": "0",
+            "RSI": "0"
+          }
+        },
+        {
+          "Nonconformity": "W11-Workmanship-puckering",
+          "NonconformityType": "Workmanship",
+          "QTY": {
+            "Minor": "3",
+            "Major": "0",
+            "Critical": "0",
+            "RSI": "0"
+          }
+        },
       ]
     }
   },
@@ -82,6 +103,11 @@ const file2rtfs = [
       "File Path": path.join(__dirname, "long-disposition.rtf"),
       // "Parse Info": "Parse sucess",
       "Season": "F16",
+      "Audit ID": "1150402",
+      "Audit Date": "5/19/2016",
+      "Audit Type": "Attribute with measurements",
+      "Product Spec": "V03",
+      "Product Lifecycle": "New",
       "Department": "Childrenswear",
       "REI Style Number": "101229",
       "Audit Level": "Normal",
@@ -156,25 +182,25 @@ const file2rtfs = [
       "Parse Error": "",
       "File Path": path.join(__dirname, "page.rtf"),
       // "Parse Info": "Parse sucess",
-      "AuditID": "190499",
-      "AuditDate": "7/4/2013",
       "Department": "16 - Menswear",
       "REI Style Number": "794446",
       "Audit Level": "Normal",
       "Auditor": "Asia PQA8",
       "Season": "F13",
+      "Audit ID": "190499",
+      "Audit Date": "7/4/2013",
+      "Audit Type": "Attribute with measurements",
+      "Product Spec": "V01",
+      "Product Lifecycle": "Carry-over",
       "Product Name": "M LS Sahara Tech Shirt",
       "Audit Quality Level": "2.5",
-      "Audit Type": "Attribute with measurements",
       "Vendor": "TREASURE WILL, HK",
       "GA Product Number": "12313",
       "Audit Lot Size": "758",
       "Production Status": "Supplier Pre-ship",
       "Factory": "JIANGXI HUAYI GARMENTS CO., LTD",
-      "Product Spec": "V01",
       "Audit Sample Quantity": "20",
       "PO Number": "4500945867/868",
-      "Product Lifecycle": "Carry-over",
       "Audit Reject Quantity": "2",
       "Nonconformity Details": [
         {
@@ -188,8 +214,8 @@ const file2rtfs = [
           }
         },
         {
-          "Title": "W1-Workmanship-alignment",
-          "Type": "Workmanship",
+          "Nonconformity": "W1-Workmanship-alignment",
+          "NonconformityType": "Workmanship",
           "QTY": {
             "Minor": "0",
             "Major": "1",
@@ -198,8 +224,8 @@ const file2rtfs = [
           }
         },
         {
-          "Title": "W11-Workmanship-puckering",
-          "Type": "Trim/Findings",
+          "Nonconformity": "W11-Workmanship-puckering",
+          "NonconformityType": "Workmanship",
           "QTY": {
             "Minor": "2",
             "Major": "0",
@@ -215,7 +241,7 @@ const file2rtfs = [
         },
         {
           "Disposition": "Future Factory Audit Required",
-          "Quantity": "758"
+          "Quantity": "0"
         },
         {
           "Disposition": "DC Receipt Audit Required",
@@ -232,6 +258,11 @@ const file2rtfs = [
       "File Path": path.join(__dirname, "multi-nonconformity-details.rtf"),
       // "Parse Info": "Parse sucess",
       "Season": "F13",
+      "Audit ID": "160780",
+      "Audit Date": "6/12/2013",
+      "Audit Type": "Attribute only",
+      "Product Spec": "v02",
+      "Product Lifecycle": "New",
       "Department": "35 - Packs",
       "REI Style Number": "854042",
       "Audit Level": "Normal",
@@ -293,6 +324,11 @@ const file2rtfs = [
       "File Path": path.join(__dirname, "multi-disposition-details.rtf"),
       // "Parse Info": "Parse sucess",
       "Season": "S13",
+      "Audit ID": "120901",
+      "Audit Date": "1/15/2013",
+      "Audit Type": "Attribute with measurements",
+      "Product Spec": "V01",
+      "Product Lifecycle": "Updated",
       "Department": "16 - Menswear",
       "REI Style Number": "844567",
       "Audit Level": "Normal",
@@ -342,6 +378,11 @@ const file2rtfs = [
       "File Path": path.join(__dirname, "long-Vendor-Factory-name.rtf"),
       // "Parse Info": "Parse sucess",
       "Season": "S13",
+      "Audit ID": "160528",
+      "Audit Date": "1/15/2013",
+      "Audit Type": "Attribute with measurements",
+      "Product Spec": "V02",
+      "Product Lifecycle": "New",
       "Department": "36 - Travel",
       "REI Style Number": "844629",
       "Audit Level": "Normal",
