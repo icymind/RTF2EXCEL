@@ -244,3 +244,10 @@ describe("Test getPONumber(str) when parse slash.rtf", function() {
     expect(getPONumber(str)).to.equal("4500767007\\7669")
   })
 })
+describe("Test getPONumber(str) when parse ....rtf", function() {
+  let str = fs.readFileSync("/Users/simon/Downloads/QC data/D9PASS842770WSportPant14313_93_225_21Nov12_220858.rtf", {encoding: "utf8"})
+  it("expect getPONumber(str) works well in slash.rtf", function() {
+    const getPONumber = extractModule.__get__("getPONumber")
+    expect(getPONumber(str)).to.equal("4500724094/088 / 4500766800/784 ")
+  })
+})

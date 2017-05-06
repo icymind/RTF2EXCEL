@@ -1,47 +1,10 @@
 const fs = require("fs")
 const assert = require("assert")
-const nonconformityType = [
-  "Critical",
-  "Fabric",
-  "Hangtag",
-  "Label",
-  "Measurement",
-  "Packaging",
-  "Packing",
-  "Trim/Findings",
-  "Vendor Spec Deviation",
-  "Workmanship",
-  "REI Spec Inaccuracy"
-]
-const rtfFields = {
-  "Audit ID": getAuditID,
-  "Audit Date": getAuditDate,
-  "Department": getDepartment,
-  "REI Style Number": getREIStyleNumber,
-  "Audit Level": getAuditLevel,
-  "Auditor": getAuditor,
-  "Season": getSeason,
-  "Product Name": getProductName,
-  "Audit Quality Level": getAuditQualityLevel,
-  "Audit Type": getAuditType,
-  "Vendor": getVendor,
-  "GA Product Number": getGAProductNumber,
-  "Audit Lot Size": getAuditLotSize,
-  "Production Status": getProductionStatus,
-  "Factory": getFactory,
-  "Product Spec": getProductSpec,
-  "Audit Sample Quantity": getAuditSampleQuantity,
-  "PO Number": getPONumber,
-  "Product Lifecycle": getProductLifecycle,
-  "Audit Reject Quantity": getAuditRejectQuantity,
-  "Nonconformity Details": getNonconformityDetails,
-  "Product Disposition Details": getProductDispositionDetails
-}
+const path = require("path")
+const {nonconformityType, fields} = require(path.join(__dirname, "const.js"))
 
-const controlCommand = String.raw`(?:\{|\}|\r|\n|\t|(?:\\\n)|(?:\\[a-z]+\d* ?)|(?:\{\\\*\\[a-z]+ .+?\}))`
+const controlCommand = String.raw`(?:\{|\}|\r|\n|\t|(?:\\\n)|(?:\\[a-z]+\d*[ ]?)|(?:\{\\\*\\[a-z]+[ ].+?\}))`
 const plainText = String.raw`[^\{\}\n\r\\]+`
-// const plainText = String.raw`.+`
-const plainTextChars = String.raw`[^\{\}\n\r\\]`
 
 function classify(nonconformityTitle) {
 
@@ -59,7 +22,6 @@ function classify(nonconformityTitle) {
   } catch(error) {
     throw classifyError
   }
-
 }
 
 function extractFromFile(file) {
@@ -77,14 +39,17 @@ function extract(str) {
   // todo:一旦有某个开始不匹配, 则修改 error 属性
   let rtf = {"Parse Error": ""}
   let errorMsg = []
-  for (let field in rtfFields) {
-    try {
-      rtf[field] = rtfFields[field](str)
-    } catch(err) {
-      rtf[field] = ""
-      errorMsg.push(field)
+  fields.forEach(field => {
+  // for (let field in fields) {
+    if (!["Parse Error", "File Path"].includes(field)) {
+      try {
+        rtf[field] = eval(`get${field.split(" ").join("")}`)(str)
+      } catch(err) {
+        rtf[field] = ""
+        errorMsg.push(field)
+      }
     }
-  }
+  })
   if (errorMsg.length !== 0) {
     rtf["Parse Error"] = `Can not extract info: [ ${errorMsg.join("; ")} ]`
   }
@@ -105,24 +70,29 @@ function extractSpansBetween(str, pre, post) {
   let paragraph = matchParagraph[1]
 
   let spans = []
-  pattern = `${controlCommand}*\\b(${plainText})`
+  let indexes = []
+  pattern = `${controlCommand}+`
   reg = new RegExp(pattern, "gmi")
   let span = reg.exec(paragraph)
+  assert.equal(span !== null, true)
+
   while (span) {
-    if (span[1].trimLeft() !== "") {
-      spans.push(span[1].trimLeft())
-    }
+    // console.log(span)
+    indexes.push({begin: span.index, end: reg.lastIndex})
     span = reg.exec(paragraph)
   }
+  // console.log(indexes)
+  assert.equal(indexes.length !== 0, true)
+  for(let i = 1, len = indexes.length; i < len; i++) {
+    spans.push(paragraph.substring(indexes[i - 1].end, indexes[i].begin))
+  }
+
   if (spans[0].trim() === ":") {
     spans = spans.slice(1)
   }
   if (/^ *: .+$/.test(spans[0])) {
     spans[0] = /^ *: (.+)$/.exec(spans[0])[1]
   }
-  // if (spans[spans.length - 1] === " ") {
-    // spans =spans.slice(0, spans.length - 1)
-  // }
   return spans
 }
 
@@ -306,7 +276,10 @@ function getAuditSampleQuantity(str) {
   return getAndValidateSpan(str, "Audit Sample Quantity", "PO Number", /^\d+$/)
 }
 function getPONumber(str) {
-  return getAndValidateSpan(str, "PO Number", "(?:(?:Product Lifecycle)|(?:Non-GA Vendor Number))", /\d+/, true)
+  let poNumberSpans = extractSpansBetween(str, "PO Number", "(?:(?:Product Lifecycle)|(?:Non-GA Vendor Number))")
+  // beautyLog("poNumberSpans", poNumberSpans)
+  let poNumer = poNumberSpans.join("")
+  return poNumer.replace(/\\\\/, "\\")
 }
 function getAuditRejectQuantity(str) {
   return getAndValidateSpan(str, "Audit Reject Quantity", "Nonconformity Details", /^\d+$/)

@@ -1,6 +1,6 @@
 const assert = require("assert")
 const path = require("path")
-const {nonconformityType} = require(path.join(__dirname, "extract.js"))
+const {nonconformityType} = require(path.join(__dirname, "const.js"))
 const Excel = require("exceljs")
 
 function getNonconformityId(type) {
@@ -28,17 +28,25 @@ function getFileds() {
     "File Path",
     "Parse Error",
     // "Parse Info",
-    "Season",
-    "Vendor",
-    "Factory",
-    "PO Number",
-    "Production Status",
-    "GA Product Number",
-    "Product Name",
+    "Audit ID",
+    "Audit Date",
+    "Department",
     "REI Style Number",
-    "Audit Lot Size",
+    "Audit Level",
+    "Auditor",
+    "Season",
+    "Product Name",
     "Audit Quality Level",
+    "Audit Type",
+    "Vendor",
+    "GA Product Number",
+    "Audit Lot Size",
+    "Production Status",
+    "Factory",
+    "Product Spec",
     "Audit Sample Quantity",
+    "PO Number",
+    "Product Lifecycle",
     "Audit Reject Quantity",
     "Product Disposition Details"
   ]
@@ -48,7 +56,6 @@ function getFileds() {
       fileds.push(`${type} ${qtyType}`)
     })
   })
-  fileds.push("Auditor")
   return fileds
 }
 
