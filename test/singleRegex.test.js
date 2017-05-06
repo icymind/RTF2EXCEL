@@ -209,3 +209,38 @@ describe("Test Method: getProductDispositionDetails(str).", function() {
     })
   })
 })
+
+describe("Test getProductDispositionDetails(str) when parse no-separate-line.rtf", function() {
+  let str = fs.readFileSync(path.join(__dirname, "no-separate-line.rtf"), {encoding: "utf8"})
+  it("expect getProductDispositionDetails(str) works well in no-separate-line.rtf", function() {
+    const getNoncomformityDetails = extractModule.__get__("getProductDispositionDetails")
+    expect(getNoncomformityDetails(str)).to.deep.equal([{
+      "Disposition": "Accept as is",
+      "Quantity": "905"
+    }])
+  })
+})
+describe("Test getProductDispositionDetails(str) when parse no-audit-done.rtf", function() {
+  let str = fs.readFileSync(path.join(__dirname, "no-audit-done.rtf"), {encoding: "utf8"})
+  it("expect getProductDispositionDetails(str) works well in no-audit-done.rtf", function() {
+    const getNoncomformityDetails = extractModule.__get__("getProductDispositionDetails")
+    expect(getNoncomformityDetails(str)).to.deep.equal([{
+      "Disposition": "Accept as is",
+      "Quantity": "288"
+    }])
+  })
+})
+describe("Test getAuditDate(str) when parse separate-date.rtf", function() {
+  let str = fs.readFileSync(path.join(__dirname, "separate-date.rtf"), {encoding: "utf8"})
+  it("expect getAuditDate(str) works well in separate-date.rtf", function() {
+    const getAuditDate = extractModule.__get__("getAuditDate")
+    expect(getAuditDate(str)).to.equal("12/21/2012")
+  })
+})
+describe("Test getPONumber(str) when parse slash.rtf", function() {
+  let str = fs.readFileSync(path.join(__dirname, "slash.rtf"), {encoding: "utf8"})
+  it("expect getPONumber(str) works well in slash.rtf", function() {
+    const getPONumber = extractModule.__get__("getPONumber")
+    expect(getPONumber(str)).to.equal("4500767007\\7669")
+  })
+})

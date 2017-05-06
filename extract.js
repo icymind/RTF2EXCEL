@@ -39,9 +39,8 @@ const rtfFields = {
 }
 
 const controlCommand = String.raw`(?:\{|\}|\r|\n|\t|(?:\\\n)|(?:\\[a-z]+\d* ?)|(?:\{\\\*\\[a-z]+ .+?\}))`
-// const controlCommand = String.raw`(?:\{|\}|(?:\\\n)|(?:\\[a-z]+\d* ?))`
-// const controlCommand = String.raw`(?:\{|\}|\r|\n|(?:\\\n)|(?:\\[a-z]+?\d*?\s*?))`
 const plainText = String.raw`[^\{\}\n\r\\]+`
+// const plainText = String.raw`.+`
 const plainTextChars = String.raw`[^\{\}\n\r\\]`
 
 function classify(nonconformityTitle) {
@@ -82,6 +81,7 @@ function extract(str) {
     try {
       rtf[field] = rtfFields[field](str)
     } catch(err) {
+      rtf[field] = ""
       errorMsg.push(field)
     }
   }
@@ -91,216 +91,78 @@ function extract(str) {
   return rtf
 }
 
-function getREIStyleNumber(str) {
-  let combine = `REI Style Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Audit Level`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-  if (result === null || !/\d+/.test(result)) {
-    throw new Error(`Can not extract info: REI Style Number: ${result}`)
-  }
-  return result
+function beautyLog(title, data) {
+  console.log(`============${title} begin============`)
+  console.log(data)
+  console.log("======================================")
 }
-function getAuditLevel(str) {
-  let combine = `Audit Level${controlCommand}+(?:: )?${controlCommand}+(${plainText})${controlCommand}+Auditor`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
 
-  let cleanup = /\s*:\s*(\d+)/.exec(result)
-  if (cleanup) {
-    result = cleanup[1]
+function extractSpansBetween(str, pre, post) {
+  let pattern = `${pre}([\\s\\S]*?)${post}`
+  let reg = new RegExp(pattern, "m")
+  let matchParagraph = reg.exec(str)
+  assert.equal(matchParagraph !== null, true)
+  let paragraph = matchParagraph[1]
+
+  let spans = []
+  pattern = `${controlCommand}*\\b(${plainText})`
+  reg = new RegExp(pattern, "gmi")
+  let span = reg.exec(paragraph)
+  while (span) {
+    if (span[1].trimLeft() !== "") {
+      spans.push(span[1].trimLeft())
+    }
+    span = reg.exec(paragraph)
   }
-  if (result === null || !/\w+/.test(result)) {
-    throw new Error()
+  if (spans[0].trim() === ":") {
+    spans = spans.slice(1)
   }
-  return result
+  if (/^ *: .+$/.test(spans[0])) {
+    spans[0] = /^ *: (.+)$/.exec(spans[0])[1]
+  }
+  // if (spans[spans.length - 1] === " ") {
+    // spans =spans.slice(0, spans.length - 1)
+  // }
+  return spans
 }
-function getAuditor(str) {
-  let combine = `Auditor${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Season`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-  if (result === null || !/\w+/.test(result)) {
-    throw new Error()
+
+function getAndValidateSpan(str, fieldName, postFieldName, pattern, log=false) {
+  let multiLine = ["Audit Quality Level", "Audit Lot Size", "Audit Sample Quantity"]
+  let spans = extractSpansBetween(str, fieldName, postFieldName)
+  if (log) {
+    beautyLog(fieldName, spans)
   }
-  return reg.exec(str)[1]
-}
-function getSeason(str) {
-  let combine = `Season${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Product Name`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-
-  let cleanup = /\s*:\s*(\w+)/.exec(result)
-  if (cleanup) {
-    result = cleanup[1]
+  if ((spans.length === 1 || multiLine.includes(fieldName)) && pattern.test(spans[0])) {
+    return spans[0]
+  } else {
+    throw new Error(`Can not extract ${fieldName}`)
   }
-  if (result === null || !/\w+/.test(result)) {
-    throw new Error()
-  }
-  return result
 }
-function getProductName(str) {
-  let combine = `Product Name${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Audit Quality Level`
-  let reg = new RegExp(combine, "mi")
-  let productName = reg.exec(str)[1]
 
-  combine = `Audit Quality Level${controlCommand}+(?: : )?${controlCommand}+${plainText}([\\s\\S]*)Audit Type`
-  reg = new RegExp(combine, "mi")
-  let remainText = reg.exec(str)
-  remainText = remainText[1]
-
-  combine = `${controlCommand}+(${plainTextChars}*)`
-  reg = new RegExp(combine, "gmi")
-  let productNamePart = reg.exec(remainText)
-  while (productNamePart) {
-    productName += productNamePart[1]
-    productNamePart = reg.exec(remainText)
-  }
-  return productName
-
-}
-function getAuditQualityLevel(str) {
-  // todo: 添加 audit type 会出错
-  let combine = `Audit Quality Level${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-
-  let cleanup = /\s*:\s*([\d.]+)/.exec(result)
-  if (cleanup) {
-    result = cleanup[1]
-  }
-  if (result === null || !/[\d.]+/.test(result)) {
-    throw new Error()
-  }
-  return result
-
-}
-function getVendor(str) {
-  let combine = `Vendor${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+GA Product Number`
-  let reg = new RegExp(combine, "mi")
-  let vendor = reg.exec(str)[1]
-
-  combine = `Audit Lot Size${controlCommand}+(?: : )?${controlCommand}+${plainText}([\\s\\S]*)Production Status`
-  reg = new RegExp(combine, "mi")
-  let remainText = reg.exec(str)
-  remainText = remainText[1]
-
-  combine = `${controlCommand}+(${plainTextChars}*)`
-  reg = new RegExp(combine, "gmi")
-  let vendorPart = reg.exec(remainText)
-  while (vendorPart) {
-    vendor += vendorPart[1]
-    vendorPart = reg.exec(remainText)
-  }
-  return vendor
-
-}
-function getGAProductNumber(str) {
-  let combine = `GA Product Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Audit Lot Size`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
-
-}
-function getAuditLotSize(str) {
-  // todo 末尾添加production status时,会出错
-  let combine = `Audit Lot Size${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
-
-}
-function getProductionStatus(str) {
-  let combine = `Production Status${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Factory`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
-
-}
-function getFactory(str) {
-  let combine = `Factory${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Product Spec`
-  let reg = new RegExp(combine, "mi")
-  let factory = reg.exec(str)[1]
-
-  combine = `Sample Quantity${controlCommand}+(?: : )?${controlCommand}+${plainText}([\\s\\S]*)PO Number`
-  reg = new RegExp(combine, "mi")
-  let remainText = reg.exec(str)
-  remainText = remainText[1]
-
-  combine = `${controlCommand}+(${plainTextChars}*)`
-  reg = new RegExp(combine, "gmi")
-
-  let factoryPart = reg.exec(remainText)
-  while (factoryPart) {
-    factory += factoryPart[1]
-    factoryPart = reg.exec(remainText)
-  }
-  return factory
-}
-function getAuditSampleQuantity(str) {
-  // todo
-  let combine = `Audit Sample Quantity${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-
-  let cleanup = /\s*:\s*(\d+)/.exec(result)
-  if (cleanup) {
-    result = cleanup[1]
-  }
-  if (result === null || !/\d+/.test(result)) {
-    throw new Error("Can not extract info: REI Style Number")
-  }
-
-  return result
-
-}
-function getPONumber(str) {
-  // let combine = `PO Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+Product Lifecycle`
-  let combine = `PO Number${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
-
-}
-function getAuditRejectQuantity(str) {
-  // todo
-  let combine = `Audit Reject Quantity${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-
-  let result = reg.exec(str)[1]
-
-  let cleanup = /\s*:\s*(\d+)/.exec(result)
-  // console.log(cleanup)
-  if (cleanup) {
-    // console.log("cleanup")
-    result = cleanup[1]
-  }
-  if (result === null || !/\d+/.test(result)) {
-    throw new Error("Can not extract info: REI Style Number")
-  }
-
-  return result
-
-}
 function getNonconformityDetails(str) {
-  let combine = `Comments${controlCommand}+_{8,}([\\s\\S]+)Nonconformity Summary`
-  let reg = new RegExp(combine, "mi")
-  let remainText = reg.exec(str)[1]
+  let pattern = String.raw`Nonconformity Details[\s\S]+?_{8,}([\s\S]+?)Nonconformity Summary`
+  let reg = new RegExp(pattern, "mi")
+  let matchParagraph = reg.exec(str)
+  assert.equal(matchParagraph !== null, true)
+  let paragraph = matchParagraph[1]
 
-  // console.log(remainText)
-  combine = `(${controlCommand}+)( *${plainText} *)(${controlCommand}+\\s(\\d+)${controlCommand}+\\s(\\d+)${controlCommand}+\\s(\\d+)${controlCommand}+\\s(\\d+)${controlCommand}+\\s(?:\\d+)${controlCommand}+\\s(?:\\d+)${controlCommand}+\\s(?:\\d+))?`
+  let spansPattern = `(${controlCommand}+)( *${plainText} *)(${controlCommand}+\\s(\\d+)${controlCommand}+\\s(\\d+)${controlCommand}+\\s(\\d+)${controlCommand}+\\s(\\d+)${controlCommand}+\\s(?:\\d+)${controlCommand}+\\s(?:\\d+)${controlCommand}+\\s(?:\\d+))?`
 
-  // combine = `(${controlCommand}+)(${plainText})(${controlCommand}+(${plainText})${controlCommand}+(${plainText})${controlCommand}+(${plainText})${controlCommand}+(${plainText})${controlCommand}+(?:\\d+)${controlCommand}+(?:\\d+)${controlCommand}+(?:\\d+))?`
-  reg = new RegExp(combine, "gmi")
+  reg = new RegExp(spansPattern, "gmi")
 
   let detailsArray = []
-  let item = reg.exec(remainText)
-  while (item) {
-    let controlCommandGroup = item[1]
-    let firstPlainText = item[2]
-    let qtyGroup = item[3]
-    // console.log(item)
+  let matchSpans = reg.exec(paragraph)
+  while (matchSpans) {
+    let controlCommandGroup = matchSpans[1]
+    let firstPlainText = matchSpans[2]
+    let qtyGroup = matchSpans[3]
     if (qtyGroup) {
       let [nonconformity, minorQTY, majorQTY, CriticalQTY, RSIQTY]  = [
-        item[2],
-        item[4],
-        item[5],
-        item[6],
-        item[7],
+        matchSpans[2],
+        matchSpans[4],
+        matchSpans[5],
+        matchSpans[6],
+        matchSpans[7],
       ]
       let type = classify(nonconformity)
       let detail = {
@@ -313,62 +175,50 @@ function getNonconformityDetails(str) {
           "RSI": RSIQTY
         }
       }
-      // console.log(detail)
       detailsArray.push(detail)
     } else if (firstPlainText !== " " && detailsArray.length !== 0){
       if (controlCommandGroup.includes("tx120")) {
         detailsArray[detailsArray.length - 1]["Nonconformity"] += firstPlainText
-        // console.log(`pre: #${detailsArray[detailsArray.length - 1]["Nonconformity"]}#`)
-        // console.log(`current: #${firstPlainText}#`)
-        // console.log(`command: #${firstPlainText}#`)
-        // console.log(`command's attribute: #${controlCommandGroup}#`)
       }
     }
-    item = reg.exec(remainText)
+    matchSpans = reg.exec(paragraph)
   }
   return detailsArray
 
 }
 function getProductDispositionDetails(str) {
-  let combine = `Quantity${controlCommand}+Comments${controlCommand}+_{8,}([\\s\\S]+)Audit Done`
-  let reg = new RegExp(combine, "mi")
-  let remainText = reg.exec(str)[1]
+  let paragraphPattern = String.raw`Product Disposition Details[\s\S]+?Quantity[\s\S]+?Comments[\s\S]+?(?:_{8,})?([\s\S]+?)(?:(?:Audit Done)|(?:\\\*\\themedata))`
+  let reg = new RegExp(paragraphPattern, "mi")
+  let matchParagraphs = reg.exec(str)
 
-  let linePattern = String.raw`\b([\s\S]*?)\\par\b`
-  let lineReg = new RegExp(linePattern, "gmi")
-  let lines = lineReg.exec(remainText)
-  if (lines === null) {
+  assert.equal(matchParagraphs !== null, true)
 
-    linePattern = String.raw`\b([\s\S]*?)\\pard\b`
-    lineReg = new RegExp(linePattern, "gmi")
-    lines = lineReg.exec(remainText)
-    if (lines === null) {
-      throw new Error("Can not Extract Product Disposition Details")
-    }
-  }
+  let paragraph = matchParagraphs[1]
+
+  let linePattern = String.raw`\b([\s\S]*?)(?:(?:\\par\b)|(?:\\pard\b))`
+  reg = new RegExp(linePattern, "gmi")
+  let matchLines = reg.exec(paragraph)
 
   let dispositionArray = []
   let lineTabPosition = []
-  while(lines) {
-    let fieldPattern = `(${controlCommand}+?)\\b(${plainText})`
-    let fieldReg = new RegExp(fieldPattern, "gmi")
+  while(matchLines) {
+    let spanPattern = `(${controlCommand}+?)\\b(${plainText})`
+    let spanReg = new RegExp(spanPattern, "gmi")
 
-    let line = lines[1]
-    let field = fieldReg.exec(line)
+    let line = matchLines[1]
+    let matchSpans = spanReg.exec(line)
 
     let fieldArray = []
-    while(field) {
-      let positions = field[1].match(/tx\d+/gmi)
+    while(matchSpans) {
+      let positions = matchSpans[1].match(/tx\d+/gmi)
       if (positions) {
         lineTabPosition = positions
       }
-      if (field[2] !== " ") {
-        fieldArray.push(field[2])
+      if (matchSpans[2] !== " ") {
+        fieldArray.push(matchSpans[2])
       }
-      field = fieldReg.exec(line)
+      matchSpans = spanReg.exec(line)
     }
-    // console.log("lineTabPosition", lineTabPosition)
-    // console.log("fieldArray", fieldArray)
     let fieldArrayLength = fieldArray.length
     if (fieldArrayLength === 3) {
       assert.equal(parseInt(fieldArray[1]), fieldArray[1], "Quantity must be number")
@@ -386,73 +236,104 @@ function getProductDispositionDetails(str) {
       } else {
         dispositionArray[dispositionArray.length - 1]["Disposition"] += fieldArray[0]
       }
-    } else if (fieldArrayLength === 1 && dispositionArray.length !==0 && !lineTabPosition.includes("tx4200")) {
+    } else if (fieldArrayLength === 1 && dispositionArray.length !== 0 && !lineTabPosition.includes("tx4200")) {
       dispositionArray[dispositionArray.length - 1]["Disposition"] += fieldArray[0]
     }
-    lines = lineReg.exec(remainText)
+    matchLines= reg.exec(paragraph)
   }
 
   return dispositionArray
 }
-function getDepartment(str) {
-  let combine = `Department${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
-}
 function getAuditID(str) {
-  let combine = `AuditID\\/Date${controlCommand}+(?: : )?${controlCommand}+(${plainText})${controlCommand}+(${plainText})${controlCommand}+Department`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-
-  let cleanup = /\s*:\s*(\d+)/.exec(result)
-  // console.log(cleanup)
-  if (cleanup) {
-    console.log("cleanup")
-    result = cleanup[1]
+  let spans = extractSpansBetween(str, "AuditID\\/Date", "Department")
+  let idPattern = /^\d+$/
+  if (spans.length !== 0 && idPattern.test(spans[0])) {
+    return spans[0]
+  } else {
+    throw new Error("Can not extract Audit ID")
   }
-  if (result === null || !/\d+/.test(result)) {
-    throw new Error("Can not extract info: REI Style Number")
-  }
-
-  if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(result)) {
-    result = ""
-  }
-
-  return result
 }
 function getAuditDate(str) {
-  let combine = `AuditID\\/Date${controlCommand}+(?: : )?${controlCommand}+${plainText}${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-
-  let cleanup = /\s*:\s*([/\w]+)/.exec(result)
-  if (cleanup) {
-    // console.log("cleanup")
-    result = cleanup[1]
+  let spans = extractSpansBetween(str, "AuditID\\/Date", "Department")
+  let datePattern = /^((\d{1,2}\/\d{1,2}\/\d{1,4})|(\d{1,4}\/\d{1,2}\/\d{1,2}))$/
+  // beautyLog("dates", spans)
+  if (spans.length === 1 && datePattern.test(spans[0])) {
+    return spans[0]
+  } else if (spans.length >= 2) {
+    if (datePattern.test(spans.slice(1).join(""))) { return spans.slice(1).join("") }
+    if (datePattern.test(spans.join(""))) { return spans.join("") }
+  } else {
+    throw new Error("Can not extract Audit Date")
   }
-  console.log(result)
-  if (result === null || !/\d{1,4}\/\d{1,4}\/\d{1,4}/.test(result)) {
-    throw new Error("Can not extract info")
-  }
-
-  return result
-
 }
 function getAuditType(str) {
-  let combine = `Audit Type${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  return getAndValidateSpan(str, "Audit Type", "Vendor", /^\w+[\w ]*$/)
 }
 function getProductSpec(str) {
-  let combine = `Product Spec${controlCommand}+(?: : )?${controlCommand}+\\b(${plainText})${controlCommand}+Audit Sample Quantity`
-  let reg = new RegExp(combine, "mi")
-  let result = reg.exec(str)[1]
-  return result
+  return getAndValidateSpan(str, "Product Spec", "Audit Sample Quantity", /^v\d+$/i)
 }
 function getProductLifecycle(str) {
-  let combine = `Product Lifecycle${controlCommand}+(?: : )?${controlCommand}+(${plainText})`
-  let reg = new RegExp(combine, "mi")
-  return reg.exec(str)[1]
+  return getAndValidateSpan(str, "Product Lifecycle", "Audit Reject Quantity", /^[\w \-]+/)
+}
+function getREIStyleNumber(str) {
+  return getAndValidateSpan(str, "REI Style Number", "Audit Level", /^\d+$/)
+}
+function getAuditLevel(str) {
+  return getAndValidateSpan(str, "Audit Level", "Auditor", /^\w+$/)
+}
+function getAuditor(str) {
+  return getAndValidateSpan(str, "Auditor", "Season", /^.+$/)
+}
+function getSeason(str) {
+  return getAndValidateSpan(str, "Season", "Product Name", /^\w+$/)
+}
+function getDepartment(str) {
+  return getAndValidateSpan(str, "Department", "REI Style Number", /^[\S ]+$/)
+}
+function getAuditQualityLevel(str) {
+  return getAndValidateSpan(str, "Audit Quality Level", "Audit Type", /^(\d+|(\d+\.\d+))$/)
+}
+function getGAProductNumber(str) {
+  return getAndValidateSpan(str, "GA Product Number", "Audit Lot Size", /^[\w\-]+$/)
+}
+function getAuditLotSize(str) {
+  return getAndValidateSpan(str, "Audit Lot Size", "Production Status", /^(\d+|(\d+\.\d+))$/)
+}
+function getProductionStatus(str) {
+  return getAndValidateSpan(str, "Production Status", "(?:(?:Factory)|(?:Non-GA Vendor Name))", /^[\w \-]+$/)
+}
+function getAuditSampleQuantity(str) {
+  return getAndValidateSpan(str, "Audit Sample Quantity", "PO Number", /^\d+$/)
+}
+function getPONumber(str) {
+  return getAndValidateSpan(str, "PO Number", "(?:(?:Product Lifecycle)|(?:Non-GA Vendor Number))", /\d+/, true)
+}
+function getAuditRejectQuantity(str) {
+  return getAndValidateSpan(str, "Audit Reject Quantity", "Nonconformity Details", /^\d+$/)
+}
+function getProductName(str) {
+  let productName = getAndValidateSpan(str, "Product Name", "Audit Quality Level", /^.*$/)
+  let productNamePart = extractSpansBetween(str, "Audit Quality Level", "Audit Type")
+  if (productNamePart.length !== 0) {
+    productName += productNamePart.slice(1).join("")
+  }
+  return productName
+}
+function getVendor(str) {
+  let vendor = getAndValidateSpan(str, "Vendor", "GA Product Number", /^\w.*$/)
+  let vendorPart = extractSpansBetween(str, "Audit Lot Size", "Production Status")
+  if (vendorPart.length !== 0) {
+    vendor += vendorPart.slice(1).join("")
+  }
+  return vendor
+}
+function getFactory(str) {
+  let factory = getAndValidateSpan(str, "Factory", "Product Spec", /^\w.*$/)
+  let factoryPart = extractSpansBetween(str, "Audit Sample Quantity", "PO Number")
+  if (factoryPart.length !== 0) {
+    factory += factoryPart.slice(1).join("")
+  }
+  return factory
 }
 
 module.exports = {extract: extract, extractFromFile: extractFromFile, nonconformityType: nonconformityType}

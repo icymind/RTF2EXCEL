@@ -80,9 +80,9 @@ function writeToWorkbook(workbook, sheetName, rtf) {
   // fill Nonconformity Details QTY with 0
   fillNonconformityQTY(row)
 
-  for (let filed in rtf) {
-    if (filed === "Nonconformity Details") {
-      rtf[filed].forEach(detail => {
+  for (let field in rtf) {
+    if (field === "Nonconformity Details" && Array.isArray(rtf[field])) {
+      rtf[field].forEach(detail => {
         let type = detail["NonconformityType"]
         if (hasSeenType.has(type)) {
           getNonconformityId(type).forEach(item => {
@@ -95,12 +95,12 @@ function writeToWorkbook(workbook, sheetName, rtf) {
           })
         }
       })
-    } else if (filed === "Product Disposition Details") {
+    } else if (field === "Product Disposition Details" && Array.isArray(rtf[field])) {
       let dispositionTitles = []
-      rtf[filed].forEach(detail => dispositionTitles.push(detail["Disposition"]))
-      row[filed] = dispositionTitles.join("; ")
+      rtf[field].forEach(detail => dispositionTitles.push(detail["Disposition"]))
+      row[field] = dispositionTitles.join("; ")
     } else {
-      row[filed] = rtf[filed]
+      row[field] = rtf[field]
     }
   }
   // console.log(row)

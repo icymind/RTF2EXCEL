@@ -420,14 +420,14 @@ const file2rtfs = [
   {
     file: "colon.rtf",
     rtf: {
-      "Parse Error": "",
+      "Parse Error": "Can not extract info: [ Audit ID; Product Spec ]",
       "File Path": path.join(__dirname, "colon.rtf"),
       // "Parse Info": "Parse sucess",
       "Season": "S17",
       "Audit ID": "",
       "Audit Date": "1/9/2017",
       "Audit Type": "Attribute with measurements",
-      "Product Spec": " ",
+      "Product Spec": "",
       "Product Lifecycle": "Updated",
       "Department": "Menswear",
       "REI Style Number": "892144",
