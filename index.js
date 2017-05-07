@@ -7,7 +7,8 @@ const {dialog} = require("electron").remote
 const glob = require("glob")
 const {createWorkbook, writeToWorkbook} = require(path.join(__dirname, "./excel.js"))
 const defaultFileName = "rtfs2excel.xlsx"
-let globalWorkbook = null
+const tempPath = require("os").tmpdir()
+// let globalWorkbook = null
 let globalUnsuccessfulFile = null
 
 // todo 将getElementById 放到 domloaded 中
@@ -19,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSelect = document.getElementById("btn-select")
   const textPath = document.getElementById("path")
   const textSavePath = document.getElementById("save-path")
-  const dlgSave = new mdui.Dialog("#dialog-save-file", {modal: true})
+  const dlgSave = new mdui.Dialog("#dialog-save-file", {modal: true, closeOnConfirm: false})
   const dialogSaveFile = document.getElementById("dialog-save-file")
   // const indicator = document.getElementById("indicator")
 
@@ -29,25 +30,12 @@ document.addEventListener("DOMContentLoaded", () => {
   dialogSaveFile.addEventListener("closed.mdui.dialog", () => {
     btnProcess.innerHTML = "Re Process"
     btnProcess.disabled = false
+    // globalWorkbook = null
+    globalUnsuccessfulFile = null
   })
   dialogSaveFile.addEventListener("confirm.mdui.dialog", () => {
     let isSaveExcel = document.getElementById("save-excel").checked
     let isCopyUnsuccessful = document.getElementById("copy-unsuccessful").checked
-    if (isSaveExcel) {
-      if (fs.existsSync(textSavePath.value) && fs.statSync(textSavePath.value).isDirectory()) {
-        let filePath = path.join(textSavePath.value, defaultFileName)
-        if (fs.existsSync(filePath)) {
-          fs.renameSync(filePath, `${filePath}.${Date.now()}.bak`)
-          console.log(`rename an exist ${defaultFileName}`)
-        }
-        globalWorkbook.xlsx.writeFile(filePath).then(() => {
-          console.log("excel file saved")
-          globalWorkbook = null
-        })
-      } else {
-        mdui.alert("Invalid Path")
-      }
-    }
     if (isCopyUnsuccessful) {
       globalUnsuccessfulFile.forEach(file => {
         let basename = path.basename(file)
@@ -61,7 +49,22 @@ document.addEventListener("DOMContentLoaded", () => {
           if (err) { console.log(err) }
         })
       })
-      // console.log(`copy ${file} sucess`)
+    }
+    if (isSaveExcel) {
+      if (fs.existsSync(textSavePath.value) && fs.statSync(textSavePath.value).isDirectory()) {
+        let filePath = path.join(textSavePath.value, defaultFileName)
+        if (fs.existsSync(filePath)) {
+          fs.renameSync(filePath, `${filePath}.${Date.now()}.bak`)
+          console.log(`rename an exist ${defaultFileName}`)
+        }
+        fs.rename(path.join(tempPath, defaultFileName), filePath, () => {
+          console.log("excel file copied")
+          mdui.alert("Success Saved")
+          dlgSave.close()
+        })
+      } else {
+        mdui.alert("Invalid Path")
+      }
     }
   })
 
@@ -129,19 +132,22 @@ document.addEventListener("DOMContentLoaded", () => {
             processCounter += 1
             btnProcess.innerHTML = `Processing ${(paddings + processCounter).slice(-paddings.length)}/${filesAmount}`
             if (rtf["Parse Error"]) {
-              console.log(`Can't handle ${file}`)
+              // console.log(`Can't handle ${file}`)
               cantHandleFiles.add(file)
             }
             writeToWorkbook(workbook, sheetName, rtf)
-            resolve(rtf)
+            resolve()
           })
         })
       }
       bluebirdPromise.map(files, processPromise, {concurrency: 8})
         .then(() => {
           btnProcess.innerHTML = `${filesAmount} files DONE`
-          globalWorkbook = workbook
           globalUnsuccessfulFile = cantHandleFiles
+          workbook.xlsx.writeFile(path.join(tempPath, defaultFileName)).then(() => {
+            workbook = null
+          })
+          cantHandleFiles = null
           dlgSave.open()
         })
     })
