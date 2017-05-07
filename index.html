@@ -16,11 +16,36 @@
 
     <div>
       <p>
-        Choose folder which contains rtf files, click "Process" to extract info and write to excel file.
+        Choose the folder which contains rtf files;
       </p>
+        <p>Click "Process" to extract info to a sheet.</p>
     </div>
-    <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-red" id="btn-process" disabled>Process
-    </button>
+    <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-red" id="btn-process" disabled>Process</button>
+
+
+    <div class="mdui-dialog" id="dialog-save-file">
+      <div class="mdui-dialog-title">Choose a folder to save file(s):</div>
+      <div class="mdui-dialog-content">
+        <div class="mdui-textfield mdui-textfield-floating-label">
+          <input id="save-path" class="mdui-textfield-input" type="text">
+        </div>
+        <button class="mdui-btn mdui-btn-raised mdui-ripple mdui-color-blue" id="btn-save-select">Select Folder</button>
+        <label class="mdui-checkbox">
+          <input id="save-excel" type="checkbox" name="saveOptions" checked>
+          <i class="mdui-checkbox-icon"></i>
+          Save Excel
+        </label>
+        <label class="mdui-checkbox">
+          <input id="copy-unsuccessful" type="checkbox" name="saveOptions">
+          <i class="mdui-checkbox-icon"></i>
+          Copy Unsuccessful Files
+        </label>
+      </div>
+      <div class="mdui-dialog-actions">
+        <button class="mdui-btn mdui-ripple" mdui-dialog-close>Cancel</button>
+        <button class="mdui-btn mdui-ripple" mdui-dialog-confirm>Save</button>
+      </div>
+    </div>
     <div class="mdui-spinner mdui-spinner-colorful mdui-hidden" id="indicator"></div>
   </body>
 </html>
